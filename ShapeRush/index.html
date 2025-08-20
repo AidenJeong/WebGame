@@ -2,8 +2,9 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>모양암기 게임</title>
+<!-- 확대 방지: 더블탭/핀치 방지 -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>ShapeRush</title>
 <style>
   :root{
     --design-w:390px;  /* 고정 가상 해상도 */
@@ -13,19 +14,21 @@
     --bg:#0e0f13; 
     --panel:#161821;
     --text:#e6e8ef;
-    --accent:#9ad3ff;
+    --accent:#8ed0ff;
     --danger:#ff6b6b;
+    --brand:#ffd166;
   }
   *{box-sizing:border-box}
-  html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-family:system-ui, -apple-system, Segoe UI, Roboto, Noto Sans KR, Apple SD Gothic Neo, sans-serif;}
-  .viewport{
-    display:grid; place-items:center; height:100%; width:100%;
+  html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-family:system-ui, -apple-system, Segoe UI, Roboto, Noto Sans KR, Apple SD Gothic Neo, sans-serif;
+    touch-action: manipulation; -webkit-user-select:none; user-select:none; -webkit-text-size-adjust:100%;
   }
+  .viewport{ display:grid; place-items:center; height:100%; width:100%; }
   .game-root{
     position:relative; width:var(--design-w); height:var(--design-h);
     background:linear-gradient(180deg,#0f1118 0%, #11131b 100%);
     border-radius:18px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.5);
     transform-origin:top center;
+    touch-action: manipulation;
   }
   /* 상단 영역 */
   .top{
@@ -33,10 +36,10 @@
     border-bottom:1px solid rgba(255,255,255,.06);
     background:radial-gradient(120% 120% at 100% 50%, rgba(154,211,255,.08), transparent 60%);
   }
-  #playCanvas{display:block; width:100%; height:100%;}
+  #playCanvas{display:block; width:100%; height:100%; touch-action:manipulation;}
   .hud{
-    position:absolute; top:8px; left:10px; font-size:12px; letter-spacing:.2px; opacity:.9;
-    background:rgba(0,0,0,.25); padding:4px 8px; border-radius:8px; backdrop-filter: blur(4px);
+    position:absolute; top:10px; left:12px; font-size:13px; letter-spacing:.2px; opacity:.95;
+    background:rgba(0,0,0,.25); padding:6px 10px; border-radius:10px; backdrop-filter: blur(4px);
   }
   .hud b{color:var(--accent)}
   /* 하단 버튼 그리드 */
@@ -49,39 +52,40 @@
     display:grid; place-items:center; border:none; outline:none; border-radius:14px;
     background:var(--panel); cursor:pointer; transition:transform .06s ease, box-shadow .12s ease, background .15s;
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), 0 6px 18px rgba(0,0,0,.35);
-    position:relative;
+    position:relative; touch-action:manipulation; -webkit-user-select:none; user-select:none;
   }
   .shape-btn:active{ transform:scale(.98) }
-  .shape-btn.correct-blink{
-    animation: okblink .25s ease;
-  }
+  .shape-btn.correct-blink{ animation: okblink .25s ease; }
   @keyframes okblink{
-    0%{ box-shadow: inset 0 0 0 1px rgba(154,211,255,.8), 0 0 0 rgba(0,0,0,0);}
-    100%{ box-shadow: inset 0 0 0 1px rgba(154,211,255,.15), 0 0 0 rgba(0,0,0,0);}
+    0%{ box-shadow: inset 0 0 0 1px rgba(142,208,255,.9), 0 0 0 rgba(0,0,0,0);}
+    100%{ box-shadow: inset 0 0 0 1px rgba(142,208,255,.15), 0 0 0 rgba(0,0,0,0);}
   }
-  .shape-svg{ width:70%; height:70%; }
+  .shape-svg{ width:70%; height:70%; pointer-events:none; }
   /* 오버레이들 */
   .overlay{
     position:absolute; inset:0; display:grid; place-items:center; background:rgba(0,0,0,.55);
     backdrop-filter: blur(2px);
   }
   .panel{
-    width:75%; max-width:300px; text-align:center; background:#151826; border-radius:16px; padding:22px 20px;
+    width:82%; max-width:360px; text-align:center; background:#151826; border-radius:16px; padding:26px 22px;
     box-shadow:0 10px 30px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.06);
   }
-  .title{ font-size:22px; margin:4px 0 14px}
+  .title{ font-size:26px; margin:2px 0 12px; font-weight:700; letter-spacing:.3px }
+  .subtitle{ font-size:14px; color:var(--brand); margin-bottom:10px; letter-spacing:.2px }
+  .desc{ font-size:15px; opacity:.92; line-height:1.6; text-align:left; margin:0 auto; max-width:30em }
+  .desc ul{ margin:0; padding-left:1.2em }
+  .desc li{ margin:.35em 0 }
   .btn{
-    margin-top:12px; width:100%; padding:14px 16px; font-size:16px; border-radius:12px; border:none; cursor:pointer; 
+    margin-top:16px; width:100%; padding:15px 16px; font-size:17px; border-radius:12px; border:none; cursor:pointer; 
     color:#0a0d14; background:linear-gradient(180deg,#bde4ff,#8ed0ff);
     box-shadow: 0 6px 18px rgba(142,208,255,.35);
+    touch-action:manipulation;
   }
   .btn:active{transform:translateY(1px)}
-  .gameover .score{ font-size:18px; margin:6px 0 2px}
-  .gameover .small{ opacity:.8; font-size:13px}
+  .gameover .score{ font-size:20px; margin:8px 0 6px}
+  .gameover .small{ opacity:.85; font-size:14px}
   /* 오류 흔들림 */
-  .shake{
-    animation:shake .25s ease;
-  }
+  .shake{ animation:shake .25s ease; }
   @keyframes shake{
     0%,100%{ transform:translateX(0) }
     25%{ transform:translateX(-6px) }
@@ -101,10 +105,16 @@
     <!-- 시작 화면 -->
     <div class="overlay" id="startOverlay" aria-hidden="false">
       <div class="panel">
-        <div class="title">모양암기 게임</div>
-        <div style="font-size:13px; opacity:.85; line-height:1.45">
-          상단에 새 모양이 오른쪽에서 왼쪽으로 5초간 흐릅니다.<br/>
-          하단에서 <b>지금까지 나온 모양을 순서대로</b> 모두 누르세요!
+        <div class="title">ShapeRush</div>
+        <div class="subtitle">Memorize. Tap. Rush.</div>
+        <div class="desc">
+          <ul>
+            <li>상단에 새 <b>모양 1개</b>가 <b>오른쪽 → 왼쪽</b>으로 <b>5초</b> 동안 이동합니다.</li>
+            <li>아래에서 <b>지금까지 나온 모든 모양을 순서대로</b> 입력하세요. (중복 가능)</li>
+            <li><b>틀리거나</b> 5초 안에 전부 입력하지 못하면 <b>종료</b>됩니다.</li>
+            <li>같은 모양이 연속일 수 있어요. <b>버튼을 빠르게 여러 번 눌러도 화면이 확대되지 않도록</b> 설정했습니다.</li>
+            <li>점수: 단계 완료 시 <code>10×단계 + 보너스</code>, 보너스 = <code>10×단계 × (5−경과)/5</code></li>
+          </ul>
         </div>
         <button class="btn" id="startBtn">시작</button>
       </div>
@@ -135,7 +145,7 @@
   window.addEventListener('resize', fit, {passive:true});
   fit();
 
-  /*** 상수/유틸 ***/
+  /*** 캔버스 ***/
   const CANVAS = document.getElementById('playCanvas');
   const CTX = CANVAS.getContext('2d');
   const DPR = Math.max(1, Math.floor(window.devicePixelRatio || 1));
@@ -161,7 +171,6 @@
   const finalStage = document.getElementById('finalStage');
 
   /*** 모양 정의 ***/
-  // 6종 × (filled/outline) = 12
   const SHAPES = [
     {id:'circle_f', type:'circle', filled:true,  label:'원(채움)'},
     {id:'circle_o', type:'circle', filled:false, label:'원(외곽)'},
@@ -173,7 +182,7 @@
     {id:'star_o',   type:'star', filled:false,  label:'별(외곽)'},
     {id:'dia_f',    type:'diamond', filled:true,  label:'마름모(채움)'},
     {id:'dia_o',    type:'diamond', filled:false, label:'마름모(외곽)'},
-    {id:'ring_f',   type:'ring', filled:true,   label:'2중원(채움)'},
+    {id:'ring_f',   type:'ring', filled:true,   label:'2중원(채움) 변경형'},
     {id:'ring_o',   type:'ring', filled:false,  label:'2중원(외곽)'},
   ];
   const SHAPE_INDEX = Object.fromEntries(SHAPES.map((s,i)=>[s.id,i]));
@@ -188,7 +197,16 @@
     const g = document.createElementNS(NS,'g');
     g.setAttribute('transform','translate(50,50)');
     const path = makeSVGPath(def);
-    if(Array.isArray(path)){
+    if(def.type==='ring' && def.filled && Array.isArray(path)){
+      // ring_f: 작은 채운 원 + 바깥 원 외곽선
+      const [inner, outer] = path;
+      inner.setAttribute('fill', color);
+      inner.setAttribute('stroke', 'none');
+      outer.setAttribute('fill', 'none');
+      outer.setAttribute('stroke', color);
+      outer.setAttribute('stroke-width', 8);
+      g.appendChild(inner); g.appendChild(outer);
+    } else if(Array.isArray(path)){
       path.forEach(p=>{
         p.setAttribute('fill', def.filled ? color : 'none');
         p.setAttribute('stroke', color);
@@ -212,11 +230,7 @@
     const R=36;
     switch(def.type){
       case 'circle': {
-        if(def.filled){
-          p.setAttribute('d', circlePath(0,0,R));
-        }else{
-          p.setAttribute('d', circlePath(0,0,R));
-        }
+        p.setAttribute('d', circlePath(0,0,R));
         return p;
       }
       case 'square': {
@@ -239,14 +253,14 @@
       }
       case 'ring': {
         if(def.filled){
-          // 두께 있는 도넛
-          const outer = circlePath(0,0,R);
-          const inner = circlePath(0,0,R*0.6,true); // 반시계로 파내기
-          p.setAttribute('d', outer + ' ' + inner);
-          p.setAttribute('fill-rule','evenodd');
-          return p;
+          // 변경: 작은 채운 원 + 큰 원 외곽선
+          const inner = document.createElementNS(NS,'path');
+          inner.setAttribute('d', circlePath(0,0,R*0.6));
+          const outer = document.createElementNS(NS,'path');
+          outer.setAttribute('d', circlePath(0,0,R));
+          return [inner, outer];
         }else{
-          // 이중원: 얇은 두 원(스트로크)
+          // 기존: 이중 외곽선
           const outer = document.createElementNS(NS,'path');
           outer.setAttribute('d', circlePath(0,0,R));
           const inner = document.createElementNS(NS,'path');
@@ -256,13 +270,11 @@
       }
     }
   }
-  function circlePath(cx,cy,r,anticlockwise=false){
-    // 원 path (SVG arc로)
-    const sweep = anticlockwise ? 0 : 1;
+  function circlePath(cx,cy,r){
     return [
       `M ${cx-r} ${cy}`,
-      `a ${r} ${r} 0 1 ${sweep} ${r*2} 0`,
-      `a ${r} ${r} 0 1 ${sweep} ${-r*2} 0`
+      `a ${r} ${r} 0 1 1 ${r*2} 0`,
+      `a ${r} ${r} 0 1 1 ${-r*2} 0`
     ].join(' ');
   }
   function starPath(points, outerR, innerR){
@@ -290,11 +302,7 @@
   buildButtons();
 
   /*** 게임 상태 ***/
-  const STATE = {
-    idle:'idle',
-    playing:'playing',
-    gameover:'gameover'
-  };
+  const STATE = { idle:'idle', playing:'playing', gameover:'gameover' };
   let gameState = STATE.idle;
 
   let stage = 0;
@@ -314,7 +322,6 @@
     const sid = e.currentTarget.dataset.sid;
     const expected = sequence[inputIndex];
     if(sid === expected){
-      // 올바른 입력
       blinkButton(e.currentTarget);
       inputIndex++;
       if(inputIndex === sequence.length){
@@ -327,23 +334,21 @@
         const add = Math.round(base + bonus);
         score += add;
 
-        // 심박 연출: 현재 도형 위치에서 펌프 & 페이드
+        // 심박 연출
         const pos = movingShapePos(now);
         effect = { start: now, sid: currentShape, x: pos.x, y: pos.y, size: pos.size };
 
-        // 다음 단계 준비
+        // 다음 단계 (연출 중에도 타이머는 계속 흐르지만, 새 단계는 연출 종료 직후 시작)
         nextStageAfter(EFFECT_MS);
       }
     }else{
-      // 오입력 → 즉시 게임오버
       wrongShake(e.currentTarget);
       endGame();
     }
   }
   function blinkButton(btn){
     btn.classList.remove('correct-blink');
-    // 강제 리플로우로 재생
-    void btn.offsetWidth;
+    void btn.offsetWidth; // 리플로우
     btn.classList.add('correct-blink');
   }
   function wrongShake(btn){
@@ -366,7 +371,6 @@
     nextStage(); // 1단계 시작
     loop();
   }
-
   function nextStage(){
     stage++;
     // 새 모양 추가 (중복 허용)
@@ -378,14 +382,11 @@
     HUD_STAGE.textContent = String(stage);
   }
   function nextStageAfter(ms){
-    // 타이머는 "정지하지 않고 계속 흐름": 연출은 별개로 그리고,
-    // 효과 종료 시 바로 다음 스테이지 시작
     setTimeout(()=>{
       effect = null;
       nextStage();
     }, ms);
   }
-
   function endGame(){
     gameState = STATE.gameover;
     finalScore.textContent = String(score);
@@ -399,20 +400,20 @@
     rafId = requestAnimationFrame(loop);
     CTX.clearRect(0,0,TOP_W,TOP_H);
 
-    // 움직이는 현재 스테이지 도형
+    // 현재 도형 이동
     if(gameState === STATE.playing){
       const now = performance.now();
       const pos = movingShapePos(now);
       drawShapeAt(currentShape, pos.x, pos.y, pos.size, 1, 0);
 
-      // 시간 초과 판정 (모든 입력을 끝내지 못한 경우)
+      // 시간 초과
       const t = now - stageStartTime;
       if(t >= MOVE_MS && inputIndex < sequence.length){
         endGame();
       }
     }
 
-    // 심박 효과 (페이드아웃)
+    // 심박 효과
     if(effect){
       const now = performance.now();
       const p = Math.min(1, (now - effect.start) / EFFECT_MS);
@@ -421,14 +422,12 @@
       drawShapeAt(effect.sid, effect.x, effect.y, effect.size * scale, alpha, 0);
     }
 
-    // HUD 점수 갱신은 렌더 루프 간헐적으로
     HUD_SCORE.textContent = String(score);
   }
   function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
 
   function movingShapePos(nowMs){
-    // 오른쪽 바깥 → 왼쪽 바깥 (정확히 5초)
-    const size = 64; // 논리 반지름/크기 기준
+    const size = 64;
     const startX = TOP_W + size;
     const endX = -size;
     const y = TOP_H * 0.55;
@@ -437,7 +436,7 @@
     return {x,y,size};
   }
 
-  /*** 캔버스 그리기 ***/
+  /*** 캔버스 도형 ***/
   function drawShapeAt(sid, x, y, size, alpha=1, rotation=0){
     const def = SHAPES[SHAPE_INDEX[sid]];
     if(!def) return;
@@ -502,14 +501,11 @@
       }
       case 'ring': {
         if(def.filled){
-          // 두께 있는 도넛(annulus)
-          CTX.beginPath();
-          CTX.arc(0,0,size,0,Math.PI*2);
-          CTX.arc(0,0,size*0.6,0,Math.PI*2,true); // 반시계로 파내기
-          CTX.fillStyle=fill; 
-          CTX.fill('evenodd');
+          // 변경: 작은 채운 원 + 바깥 원 외곽선
+          CTX.beginPath(); CTX.arc(0,0,size*0.6,0,Math.PI*2); CTX.fillStyle=fill; CTX.fill();
+          CTX.beginPath(); CTX.arc(0,0,size,0,Math.PI*2); CTX.strokeStyle=stroke; CTX.stroke();
         }else{
-          // 이중원: 두 개의 얇은 외곽선
+          // 기존: 이중 외곽선
           CTX.strokeStyle=stroke;
           CTX.beginPath(); CTX.arc(0,0,size,0,Math.PI*2); CTX.stroke();
           CTX.beginPath(); CTX.arc(0,0,size*0.6,0,Math.PI*2); CTX.stroke();
@@ -527,10 +523,9 @@
     startGame();
   });
 
-  /*** 접근성: 키보드로도 테스트 가능(옵션) ***/
+  /*** 키보드 테스트(옵션) ***/
   window.addEventListener('keydown', (e)=>{
     if(gameState!==STATE.playing) return;
-    // 1..9,q,w,e → 12개 버튼 빠른 테스트
     const map = ['1','2','3','4','5','6','7','8','9','q','w','e'];
     const idx = map.indexOf(e.key.toLowerCase());
     if(idx>=0){
