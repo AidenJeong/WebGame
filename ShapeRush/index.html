@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>모양암기 게임</title>
+<style>
+  :root{
+    --design-w:390px;  /* 고정 가상 해상도 */
+    --design-h:844px;
+    --top-h:360px;     /* 상단 플레이 영역 높이 */
+    --gap:12px;
+    --bg:#0e0f13; 
+    --panel:#161821;
+    --text:#e6e8ef;
+    --accent:#9ad3ff;
+    --danger:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-family:system-ui, -apple-system, Segoe UI, Roboto, Noto Sans KR, Apple SD Gothic Neo, sans-serif;}
+  .viewport{
+    display:grid; place-items:center; height:100%; width:100%;
+  }
+  .game-root{
+    position:relative; width:var(--design-w); height:var(--design-h);
+    background:linear-gradient(180deg,#0f1118 0%, #11131b 100%);
+    border-radius:18px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.5);
+    transform-origin:top center;
+  }
+  /* 상단 영역 */
+  .top{
+    position:relative; width:100%; height:var(--top-h);
+    border-bottom:1px solid rgba(255,255,255,.06);
+    background:radial-gradient(120% 120% at 100% 50%, rgba(154,211,255,.08), transparent 60%);
+  }
+  #playCanvas{display:block; width:100%; height:100%;}
+  .hud{
+    position:absolute; top:8px; left:10px; font-size:12px; letter-spacing:.2px; opacity:.9;
+    background:rgba(0,0,0,.25); padding:4px 8px; border-radius:8px; backdrop-filter: blur(4px);
+  }
+  .hud b{color:var(--accent)}
+  /* 하단 버튼 그리드 */
+  .bottom{
+    height:calc(var(--design-h) - var(--top-h));
+    padding:var(--gap);
+    display:grid; grid-template-columns:repeat(3,1fr); grid-auto-rows:1fr; gap:var(--gap);
+  }
+  .shape-btn{
+    display:grid; place-items:center; border:none; outline:none; border-radius:14px;
+    background:var(--panel); cursor:pointer; transition:transform .06s ease, box-shadow .12s ease, background .15s;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), 0 6px 18px rgba(0,0,0,.35);
+    position:relative;
+  }
+  .shape-btn:active{ transform:scale(.98) }
+  .shape-btn.correct-blink{
+    animation: okblink .25s ease;
+  }
+  @keyframes okblink{
+    0%{ box-shadow: inset 0 0 0 1px rgba(154,211,255,.8), 0 0 0 rgba(0,0,0,0);}
+    100%{ box-shadow: inset 0 0 0 1px rgba(154,211,255,.15), 0 0 0 rgba(0,0,0,0);}
+  }
+  .shape-svg{ width:70%; height:70%; }
+  /* 오버레이들 */
+  .overlay{
+    position:absolute; inset:0; display:grid; place-items:center; background:rgba(0,0,0,.55);
+    backdrop-filter: blur(2px);
+  }
+  .panel{
+    width:75%; max-width:300px; text-align:center; background:#151826; border-radius:16px; padding:22px 20px;
+    box-shadow:0 10px 30px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.06);
+  }
+  .title{ font-size:22px; margin:4px 0 14px}
+  .btn{
+    margin-top:12px; width:100%; padding:14px 16px; font-size:16px; border-radius:12px; border:none; cursor:pointer; 
+    color:#0a0d14; background:linear-gradient(180deg,#bde4ff,#8ed0ff);
+    box-shadow: 0 6px 18px rgba(142,208,255,.35);
+  }
+  .btn:active{transform:translateY(1px)}
+  .gameover .score{ font-size:18px; margin:6px 0 2px}
+  .gameover .small{ opacity:.8; font-size:13px}
+  /* 오류 흔들림 */
+  .shake{
+    animation:shake .25s ease;
+  }
+  @keyframes shake{
+    0%,100%{ transform:translateX(0) }
+    25%{ transform:translateX(-6px) }
+    75%{ transform:translateX(6px) }
+  }
+</style>
+</head>
+<body>
+<div class="viewport">
+  <div class="game-root" id="gameRoot">
+    <div class="top">
+      <canvas id="playCanvas"></canvas>
+      <div class="hud" id="hud">단계 <b id="stageLabel">0</b> · 점수 <b id="scoreLabel">0</b></div>
+    </div>
+    <div class="bottom" id="buttonGrid"></div>
+
+    <!-- 시작 화면 -->
+    <div class="overlay" id="startOverlay" aria-hidden="false">
+      <div class="panel">
+        <div class="title">모양암기 게임</div>
+        <div style="font-size:13px; opacity:.85; line-height:1.45">
+          상단에 새 모양이 오른쪽에서 왼쪽으로 5초간 흐릅니다.<br/>
+          하단에서 <b>지금까지 나온 모양을 순서대로</b> 모두 누르세요!
+        </div>
+        <button class="btn" id="startBtn">시작</button>
+      </div>
+    </div>
+
+    <!-- 게임오버 -->
+    <div class="overlay" id="gameoverOverlay" style="display:none">
+      <div class="panel gameover">
+        <div class="title">게임 종료</div>
+        <div class="score">최종 점수 <b id="finalScore">0</b></div>
+        <div class="small">진행 단계 <b id="finalStage">0</b></div>
+        <button class="btn" id="retryBtn">다시하기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  /*** 레이아웃 스케일링(PC/모바일 동일 화면) ***/
+  const root = document.getElementById('gameRoot');
+  function fit() {
+    const dw = 390, dh = 844;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const scale = Math.min(vw / dw, vh / dh);
+    root.style.transform = `scale(${scale})`;
+  }
+  window.addEventListener('resize', fit, {passive:true});
+  fit();
+
+  /*** 상수/유틸 ***/
+  const CANVAS = document.getElementById('playCanvas');
+  const CTX = CANVAS.getContext('2d');
+  const DPR = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+  const TOP_W = 390, TOP_H = 360;
+
+  function setupCanvas() {
+    CANVAS.width = TOP_W * DPR;
+    CANVAS.height = TOP_H * DPR;
+    CANVAS.style.width = TOP_W + 'px';
+    CANVAS.style.height = TOP_H + 'px';
+    CTX.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  setupCanvas();
+
+  const HUD_STAGE = document.getElementById('stageLabel');
+  const HUD_SCORE = document.getElementById('scoreLabel');
+
+  const startOverlay = document.getElementById('startOverlay');
+  const gameoverOverlay = document.getElementById('gameoverOverlay');
+  const startBtn = document.getElementById('startBtn');
+  const retryBtn = document.getElementById('retryBtn');
+  const finalScore = document.getElementById('finalScore');
+  const finalStage = document.getElementById('finalStage');
+
+  /*** 모양 정의 ***/
+  // 6종 × (filled/outline) = 12
+  const SHAPES = [
+    {id:'circle_f', type:'circle', filled:true,  label:'원(채움)'},
+    {id:'circle_o', type:'circle', filled:false, label:'원(외곽)'},
+    {id:'square_f', type:'square', filled:true,  label:'네모(채움)'},
+    {id:'square_o', type:'square', filled:false, label:'네모(외곽)'},
+    {id:'tri_f',    type:'triangle', filled:true,  label:'세모(채움)'},
+    {id:'tri_o',    type:'triangle', filled:false, label:'세모(외곽)'},
+    {id:'star_f',   type:'star', filled:true,   label:'별(채움)'},
+    {id:'star_o',   type:'star', filled:false,  label:'별(외곽)'},
+    {id:'dia_f',    type:'diamond', filled:true,  label:'마름모(채움)'},
+    {id:'dia_o',    type:'diamond', filled:false, label:'마름모(외곽)'},
+    {id:'ring_f',   type:'ring', filled:true,   label:'2중원(채움)'},
+    {id:'ring_o',   type:'ring', filled:false,  label:'2중원(외곽)'},
+  ];
+  const SHAPE_INDEX = Object.fromEntries(SHAPES.map((s,i)=>[s.id,i]));
+
+  /*** 버튼 생성 (3×4) ***/
+  const btnGrid = document.getElementById('buttonGrid');
+  function createShapeSVG(def, color="#e6e8ef"){
+    const NS="http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(NS,'svg');
+    svg.setAttribute('viewBox','0 0 100 100');
+    svg.classList.add('shape-svg');
+    const g = document.createElementNS(NS,'g');
+    g.setAttribute('transform','translate(50,50)');
+    const path = makeSVGPath(def);
+    if(Array.isArray(path)){
+      path.forEach(p=>{
+        p.setAttribute('fill', def.filled ? color : 'none');
+        p.setAttribute('stroke', color);
+        p.setAttribute('stroke-width', def.filled ? 0 : 8);
+        p.setAttribute('stroke-linejoin','round');
+        g.appendChild(p);
+      });
+    }else{
+      path.setAttribute('fill', def.filled ? color : 'none');
+      path.setAttribute('stroke', color);
+      path.setAttribute('stroke-width', def.filled ? 0 : 8);
+      path.setAttribute('stroke-linejoin','round');
+      g.appendChild(path);
+    }
+    svg.appendChild(g);
+    return svg;
+  }
+  function makeSVGPath(def){
+    const NS="http://www.w3.org/2000/svg";
+    const p = document.createElementNS(NS,'path');
+    const R=36;
+    switch(def.type){
+      case 'circle': {
+        if(def.filled){
+          p.setAttribute('d', circlePath(0,0,R));
+        }else{
+          p.setAttribute('d', circlePath(0,0,R));
+        }
+        return p;
+      }
+      case 'square': {
+        const s=R*2;
+        p.setAttribute('d', `M ${-R} ${-R} h ${s} v ${s} h ${-s} Z`);
+        return p;
+      }
+      case 'triangle': {
+        const h = R*Math.sqrt(3);
+        p.setAttribute('d', `M 0 ${-R} L ${h/2} ${R} L ${-h/2} ${R} Z`);
+        return p;
+      }
+      case 'diamond': {
+        p.setAttribute('d', `M 0 ${-R} L ${R} 0 L 0 ${R} L ${-R} 0 Z`);
+        return p;
+      }
+      case 'star': {
+        p.setAttribute('d', starPath(5, R, R*0.45));
+        return p;
+      }
+      case 'ring': {
+        if(def.filled){
+          // 두께 있는 도넛
+          const outer = circlePath(0,0,R);
+          const inner = circlePath(0,0,R*0.6,true); // 반시계로 파내기
+          p.setAttribute('d', outer + ' ' + inner);
+          p.setAttribute('fill-rule','evenodd');
+          return p;
+        }else{
+          // 이중원: 얇은 두 원(스트로크)
+          const outer = document.createElementNS(NS,'path');
+          outer.setAttribute('d', circlePath(0,0,R));
+          const inner = document.createElementNS(NS,'path');
+          inner.setAttribute('d', circlePath(0,0,R*0.6));
+          return [outer, inner];
+        }
+      }
+    }
+  }
+  function circlePath(cx,cy,r,anticlockwise=false){
+    // 원 path (SVG arc로)
+    const sweep = anticlockwise ? 0 : 1;
+    return [
+      `M ${cx-r} ${cy}`,
+      `a ${r} ${r} 0 1 ${sweep} ${r*2} 0`,
+      `a ${r} ${r} 0 1 ${sweep} ${-r*2} 0`
+    ].join(' ');
+  }
+  function starPath(points, outerR, innerR){
+    const step = Math.PI / points;
+    let d = `M ${0} ${-outerR}`;
+    for(let i=1;i<points*2;i++){
+      const r = i%2===0? outerR: innerR;
+      const a = -Math.PI/2 + i*step;
+      d += ` L ${Math.cos(a)*r} ${Math.sin(a)*r}`;
+    }
+    return d + ' Z';
+  }
+
+  function buildButtons(){
+    btnGrid.innerHTML='';
+    SHAPES.forEach(def=>{
+      const btn = document.createElement('button');
+      btn.className = 'shape-btn';
+      btn.dataset.sid = def.id;
+      btn.appendChild(createShapeSVG(def));
+      btn.addEventListener('click', onShapeButtonClick, {passive:true});
+      btnGrid.appendChild(btn);
+    });
+  }
+  buildButtons();
+
+  /*** 게임 상태 ***/
+  const STATE = {
+    idle:'idle',
+    playing:'playing',
+    gameover:'gameover'
+  };
+  let gameState = STATE.idle;
+
+  let stage = 0;
+  let score = 0;
+  let sequence = [];        // ['circle_f', ...]
+  let inputIndex = 0;       // 현재 단계에서 맞춰야 할 인덱스
+  let currentShape = null;  // 이번 단계 새로 등장한 모양(id)
+  let stageStartTime = 0;   // 이번 단계 시작 시간 (ms)
+  const MOVE_MS = 5000;     // 오른쪽 -> 왼쪽 5초
+  const EFFECT_MS = 250;    // 심박 연출 0.25초
+  let effect = null;        // {start:number, sid:string, x:number, y:number, size:number}
+  let rafId = 0;
+
+  /*** 입력 처리 ***/
+  function onShapeButtonClick(e){
+    if(gameState !== STATE.playing) return;
+    const sid = e.currentTarget.dataset.sid;
+    const expected = sequence[inputIndex];
+    if(sid === expected){
+      // 올바른 입력
+      blinkButton(e.currentTarget);
+      inputIndex++;
+      if(inputIndex === sequence.length){
+        // 단계 완료
+        const now = performance.now();
+        const elapsed = (now - stageStartTime)/1000;
+        const base = 10 * stage;
+        let bonus = base * (5 - elapsed)/5;
+        if(bonus < 0) bonus = 0;
+        const add = Math.round(base + bonus);
+        score += add;
+
+        // 심박 연출: 현재 도형 위치에서 펌프 & 페이드
+        const pos = movingShapePos(now);
+        effect = { start: now, sid: currentShape, x: pos.x, y: pos.y, size: pos.size };
+
+        // 다음 단계 준비
+        nextStageAfter(EFFECT_MS);
+      }
+    }else{
+      // 오입력 → 즉시 게임오버
+      wrongShake(e.currentTarget);
+      endGame();
+    }
+  }
+  function blinkButton(btn){
+    btn.classList.remove('correct-blink');
+    // 강제 리플로우로 재생
+    void btn.offsetWidth;
+    btn.classList.add('correct-blink');
+  }
+  function wrongShake(btn){
+    btn.classList.add('shake');
+    setTimeout(()=>btn.classList.remove('shake'), 250);
+  }
+
+  /*** 단계 제어 ***/
+  function startGame(){
+    gameState = STATE.playing;
+    stage = 0;
+    score = 0;
+    sequence = [];
+    inputIndex = 0;
+    effect = null;
+    startOverlay.style.display='none';
+    gameoverOverlay.style.display='none';
+    HUD_STAGE.textContent = '1';
+    HUD_SCORE.textContent = '0';
+    nextStage(); // 1단계 시작
+    loop();
+  }
+
+  function nextStage(){
+    stage++;
+    // 새 모양 추가 (중복 허용)
+    const rand = SHAPES[Math.floor(Math.random()*SHAPES.length)];
+    sequence.push(rand.id);
+    currentShape = rand.id;
+    inputIndex = 0;
+    stageStartTime = performance.now();
+    HUD_STAGE.textContent = String(stage);
+  }
+  function nextStageAfter(ms){
+    // 타이머는 "정지하지 않고 계속 흐름": 연출은 별개로 그리고,
+    // 효과 종료 시 바로 다음 스테이지 시작
+    setTimeout(()=>{
+      effect = null;
+      nextStage();
+    }, ms);
+  }
+
+  function endGame(){
+    gameState = STATE.gameover;
+    finalScore.textContent = String(score);
+    finalStage.textContent = String(stage);
+    gameoverOverlay.style.display = 'grid';
+  }
+
+  /*** 렌더 루프 ***/
+  function loop(){
+    cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(loop);
+    CTX.clearRect(0,0,TOP_W,TOP_H);
+
+    // 움직이는 현재 스테이지 도형
+    if(gameState === STATE.playing){
+      const now = performance.now();
+      const pos = movingShapePos(now);
+      drawShapeAt(currentShape, pos.x, pos.y, pos.size, 1, 0);
+
+      // 시간 초과 판정 (모든 입력을 끝내지 못한 경우)
+      const t = now - stageStartTime;
+      if(t >= MOVE_MS && inputIndex < sequence.length){
+        endGame();
+      }
+    }
+
+    // 심박 효과 (페이드아웃)
+    if(effect){
+      const now = performance.now();
+      const p = Math.min(1, (now - effect.start) / EFFECT_MS);
+      const scale = 1 + 0.4 * easeOutCubic(p);  // 1 → 1.4
+      const alpha = 1 - p;                      // 1 → 0
+      drawShapeAt(effect.sid, effect.x, effect.y, effect.size * scale, alpha, 0);
+    }
+
+    // HUD 점수 갱신은 렌더 루프 간헐적으로
+    HUD_SCORE.textContent = String(score);
+  }
+  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+
+  function movingShapePos(nowMs){
+    // 오른쪽 바깥 → 왼쪽 바깥 (정확히 5초)
+    const size = 64; // 논리 반지름/크기 기준
+    const startX = TOP_W + size;
+    const endX = -size;
+    const y = TOP_H * 0.55;
+    const p = Math.min(1, (nowMs - stageStartTime)/MOVE_MS);
+    const x = startX + (endX - startX) * p;
+    return {x,y,size};
+  }
+
+  /*** 캔버스 그리기 ***/
+  function drawShapeAt(sid, x, y, size, alpha=1, rotation=0){
+    const def = SHAPES[SHAPE_INDEX[sid]];
+    if(!def) return;
+    CTX.save();
+    CTX.translate(x, y);
+    if(rotation) CTX.rotate(rotation);
+    CTX.globalAlpha = alpha;
+
+    const stroke = '#e6e8ef';
+    const fill = '#e6e8ef';
+    CTX.lineWidth = 6;
+    CTX.lineJoin = 'round';
+    switch(def.type){
+      case 'circle':
+        if(def.filled){
+          CTX.beginPath(); CTX.arc(0,0,size,0,Math.PI*2); CTX.fillStyle=fill; CTX.fill();
+        }else{
+          CTX.beginPath(); CTX.arc(0,0,size,0,Math.PI*2); CTX.strokeStyle=stroke; CTX.stroke();
+        }
+        break;
+      case 'square':
+        if(def.filled){
+          CTX.fillStyle=fill; CTX.fillRect(-size, -size, size*2, size*2);
+        }else{
+          CTX.strokeStyle=stroke; CTX.strokeRect(-size, -size, size*2, size*2);
+        }
+        break;
+      case 'triangle': {
+        const h = size*Math.sqrt(3);
+        CTX.beginPath();
+        CTX.moveTo(0, -size);
+        CTX.lineTo(h/2, size);
+        CTX.lineTo(-h/2, size);
+        CTX.closePath();
+        if(def.filled){ CTX.fillStyle=fill; CTX.fill(); }
+        else { CTX.strokeStyle=stroke; CTX.stroke(); }
+        break;
+      }
+      case 'diamond':
+        CTX.beginPath();
+        CTX.moveTo(0,-size);
+        CTX.lineTo(size,0);
+        CTX.lineTo(0,size);
+        CTX.lineTo(-size,0);
+        CTX.closePath();
+        if(def.filled){ CTX.fillStyle=fill; CTX.fill(); }
+        else { CTX.strokeStyle=stroke; CTX.stroke(); }
+        break;
+      case 'star': {
+        const outer = size, inner = size*0.45, n=5;
+        CTX.beginPath();
+        for(let i=0;i<n*2;i++){
+          const r = i%2===0? outer: inner;
+          const a = -Math.PI/2 + i*(Math.PI/n);
+          const px = Math.cos(a)*r, py=Math.sin(a)*r;
+          if(i===0) CTX.moveTo(px,py); else CTX.lineTo(px,py);
+        }
+        CTX.closePath();
+        if(def.filled){ CTX.fillStyle=fill; CTX.fill(); }
+        else { CTX.strokeStyle=stroke; CTX.stroke(); }
+        break;
+      }
+      case 'ring': {
+        if(def.filled){
+          // 두께 있는 도넛(annulus)
+          CTX.beginPath();
+          CTX.arc(0,0,size,0,Math.PI*2);
+          CTX.arc(0,0,size*0.6,0,Math.PI*2,true); // 반시계로 파내기
+          CTX.fillStyle=fill; 
+          CTX.fill('evenodd');
+        }else{
+          // 이중원: 두 개의 얇은 외곽선
+          CTX.strokeStyle=stroke;
+          CTX.beginPath(); CTX.arc(0,0,size,0,Math.PI*2); CTX.stroke();
+          CTX.beginPath(); CTX.arc(0,0,size*0.6,0,Math.PI*2); CTX.stroke();
+        }
+        break;
+      }
+    }
+    CTX.restore();
+  }
+
+  /*** 이벤트 바인딩 ***/
+  startBtn.addEventListener('click', ()=> startGame());
+  retryBtn.addEventListener('click', ()=> {
+    gameoverOverlay.style.display='none';
+    startGame();
+  });
+
+  /*** 접근성: 키보드로도 테스트 가능(옵션) ***/
+  window.addEventListener('keydown', (e)=>{
+    if(gameState!==STATE.playing) return;
+    // 1..9,q,w,e → 12개 버튼 빠른 테스트
+    const map = ['1','2','3','4','5','6','7','8','9','q','w','e'];
+    const idx = map.indexOf(e.key.toLowerCase());
+    if(idx>=0){
+      const btn = btnGrid.children[idx];
+      btn?.click();
+    }
+  }, {passive:true});
+})();
+</script>
+</body>
+</html>
