@@ -35,3 +35,9 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0e0f13; color: #e
 .hidden { display: none; }
 #popup { position: absolute; inset: 0; display: grid; place-items: center; }
 #popup .panel { min-width: 260px; }
+
+/* Layering to ensure overlays are clickable above the canvas */
+#game { position: relative; z-index: 0; }
+#hud { z-index: 20; }
+#overlay { position: absolute; inset: 0; z-index: 30; pointer-events: auto; }
+#popup { position: absolute; inset: 0; z-index: 40; pointer-events: auto; }
