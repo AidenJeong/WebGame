@@ -36,22 +36,19 @@ class Game {
 
     this.wave = new WaveManager(this);
 
-    this.dtAccum = 0;
     this.lastTS = performance.now();
     this.running = false;
 
     renderHearts(this.hearts, this.heartsMax);
     setPowerLabel(this.powerLevel);
 
-    // 시작 버튼 핸들러: 오버레이 숨기고 캔버스 입력 보장
     document.getElementById('startBtn').onclick = ()=>{
       document.getElementById('overlay').classList.add('hidden');
-      this.canvas.style.pointerEvents = 'auto'; // 버튼 뒤 캔버스 입력 활성화
+      this.canvas.style.pointerEvents = 'auto';
       this.start();
     };
   }
   resize(){
-    // Fit to viewport with 9:16 letterbox
     const parentW = window.innerWidth;
     const parentH = window.innerHeight;
     const targetAspect = 9/16;
@@ -70,7 +67,6 @@ class Game {
     this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
   }
   start(){
-    // reset game state
     this.hearts = this.heartsMax;
     this.powerLevel = 1;
     renderHearts(this.hearts, this.heartsMax);
@@ -95,10 +91,18 @@ class Game {
   damagePlayer(n){
     this.hearts = Math.max(0, this.hearts - n);
     renderHearts(this.hearts, this.heartsMax);
+
+    // 피격 흔들림(양 원 모두)
+    const t = now();
+    const mag = Math.max(2, this.playerRadius*0.15); // 살짝만
+    this.playerA.shakeUntil = t + 0.25;
+    this.playerB.shakeUntil = t + 0.25;
+    this.playerA.shakeMag = mag;
+    this.playerB.shakeMag = mag;
+
     if(this.hearts<=0) this.gameOver();
   }
   setPlayerPos(target, p){
-    // Clamp inside bounds
     const r = this.playerRadius;
     p.x = clamp(p.x, r, this.width - r);
     p.y = clamp(p.y, r, this.height - r);
@@ -112,14 +116,12 @@ class Game {
     this.items.push(new Item(kind, pos));
   }
 
-  // 활성 라인 수 계산(파워/거리 제한 동시 적용)
-  // gap = centerDistance - playerDiameter (테두리 간 간격 기준)
   distanceAllowedLines(){
     const A = this.playerA.pos, B=this.playerB.pos;
     const centerDist = A.clone().sub(B).len();
     const D = this.playerDiameter;
-    const gap = Math.max(0, centerDist - D); // 둘 사이 빈 공간
-    if(gap >= 6*D) return 0;       // 너무 멀면 비활성(점선)
+    const gap = Math.max(0, centerDist - D); // edge-to-edge gap
+    if(gap >= 6*D) return 0;
     if(gap > 4*D) return 1;
     if(gap > 2*D) return 2;
     return 3;
@@ -129,20 +131,13 @@ class Game {
   }
 
   update(dt){
-    // Update groups
     for(const g of this.groups) g.update(dt);
-    // Update single enemies
     for(const e of this.enemies) e.update(dt);
-    // Missiles
     for(const m of this.missiles) m.update(dt);
     this.missiles = this.missiles.filter(m=>!m.outOfBounds(this.width, this.height));
-    // Items
     for(const it of this.items) it.update(dt);
 
-    // Collisions
     this.resolveCollisions(dt);
-
-    // Wave manager
     this.wave.update(dt);
   }
 
@@ -155,7 +150,6 @@ class Game {
       const r2 = m.radius + B.radius;
       if(B.pos.clone().sub(m.pos).len() <= r2){ B.hit(); }
     }
-
     // Player vs enemies
     for(const g of this.groups){
       for(const e of g.members){
@@ -174,17 +168,15 @@ class Game {
       if(B.pos.clone().sub(e.pos).len() <= rB){ B.hit(); }
     }
 
-    // Items pickup (by player circles OR by attack lines)
+    // Items pickup (players or lines)
     const eff = this.effectiveLines();
     const {lineA, lineB, offsets} = this.getLineGeometry(eff);
     const lineActive = eff>0;
     this.items = this.items.filter(it=>{
-      // player pickup
       const rA = it.radius + A.radius;
       if(A.pos.clone().sub(it.pos).len() <= rA){ this.applyItem(it.kind); return false; }
       const rB = it.radius + B.radius;
       if(B.pos.clone().sub(it.pos).len() <= rB){ this.applyItem(it.kind); return false; }
-      // line pickup (treat as small thickness 8)
       if(lineActive){
         for(const off of offsets){
           const a = lineA.clone().add(off);
@@ -201,7 +193,6 @@ class Game {
     const t = now();
     const damageInterval = 0.1;
     if(eff>0){
-      // Groups
       for(const g of this.groups){
         for(const e of g.members){
           if(!e.isAlive()) continue;
@@ -214,12 +205,11 @@ class Game {
             if(d <= e.radius) hitLines++;
           }
           if(hitLines>0){
-            e.damage(hitLines); // 1 per line overlapped
+            e.damage(hitLines);
             e.lastLineDamageTick = t;
           }
         }
       }
-      // Singles
       for(const e of this.enemies){
         if(!e.isAlive()) continue;
         if(t < e.lastLineDamageTick + damageInterval) continue;
@@ -248,7 +238,6 @@ class Game {
     }
   }
 
-  // Returns endpoints of center line and offsets for parallel lines
   getLineGeometry(effLines){
     const A = this.playerA.pos, B=this.playerB.pos;
     const lineA = A.clone();
@@ -275,6 +264,7 @@ class Game {
   draw(){
     const ctx = this.ctx;
     ctx.clearRect(0,0,this.width,this.height);
+
     // bg grid subtle
     ctx.save();
     ctx.globalAlpha = 0.2;
@@ -288,16 +278,15 @@ class Game {
     }
     ctx.restore();
 
-    // Draw items under
+    // Items under
     for(const it of this.items) it.draw(ctx);
 
-    // Draw attack line
+    // Attack line
     const eff = this.effectiveLines();
     const {lineA, lineB, offsets} = this.getLineGeometry(eff);
     const distAllowed = this.distanceAllowedLines();
     ctx.save();
     if(distAllowed===0){
-      // dashed disabled
       ctx.strokeStyle = COL.lineDisabled;
       ctx.setLineDash([8,8]);
       ctx.lineWidth = 3;
@@ -318,30 +307,29 @@ class Game {
     }
     ctx.restore();
 
-    // Draw players
+    // Players
     this.playerA.draw(ctx);
     this.playerB.draw(ctx);
 
-    // Draw enemies
+    // Enemies
     for(const g of this.groups) g.draw(ctx);
     for(const e of this.enemies) e.draw(ctx);
 
-    // Missiles on top
+    // Missiles
     for(const m of this.missiles) m.draw(ctx);
 
-    // Wave telegraphs
+    // Wave overlays (telegraph / countdown / banner)
     this.wave.draw(ctx);
   }
 
   loop = ()=>{
     if(!this.running) return;
     const ts = performance.now();
-    const dt = Math.min(0.033, (ts - this.lastTS)/1000); // cap
+    const dt = Math.min(0.033, (ts - this.lastTS)/1000);
     this.lastTS = ts;
 
     this.update(dt);
     this.draw();
-
     requestAnimationFrame(this.loop);
   }
 }
