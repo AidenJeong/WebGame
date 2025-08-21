@@ -46,6 +46,7 @@ class Game {
     // start button
     document.getElementById('startBtn').onclick = ()=>{
       document.getElementById('overlay').classList.add('hidden');
+      document.getElementById('game').classList.remove('blocked'); // ← 추가
       this.start();
     };
   }
