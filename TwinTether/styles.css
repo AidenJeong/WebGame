@@ -9,13 +9,14 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0e0f13; color: #e
   -webkit-user-select: none; user-select: none;
   -webkit-touch-callout: none;
   border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  position: relative; z-index: 0;
 }
 
 /* HUD */
 #hud { 
   position: absolute; top: env(safe-area-inset-top, 0); left: 0; right: 0;
   padding: 8px 10px; display: flex; justify-content: space-between; align-items: center;
-  pointer-events: none; font-weight: 600;
+  pointer-events: none; font-weight: 600; z-index: 20;
 }
 #hearts { font-size: 20px; letter-spacing: 2px; }
 #hearts .filled { color: #ff3b62; }
@@ -33,14 +34,13 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0e0f13; color: #e
 .panel button:hover { filter: brightness(1.05); }
 
 .hidden { display: none; }
-#popup { position: absolute; inset: 0; display: grid; place-items: center; }
 #popup .panel { min-width: 260px; }
 
-/* Layering to ensure overlays are clickable above the canvas */
-#game { position: relative; z-index: 0; }
-#hud { z-index: 20; }
-#overlay { position: absolute; inset: 0; z-index: 30; pointer-events: auto; }
-#popup { position: absolute; inset: 0; z-index: 40; pointer-events: auto; }
-
-/* NEW: 시작 전에는 캔버스가 포인터 이벤트를 못 받게 막기 */
-#game.blocked { pointer-events: none; }
+/* overlay/popup가 항상 캔버스 위에서 클릭되도록 */
+#overlay,
+#popup {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: auto;
+}
