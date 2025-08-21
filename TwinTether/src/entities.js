@@ -6,7 +6,9 @@ class PlayerCircle {
     this.pos = new Vec2(x,y);
     this.radius = radius;
     this.color = COL.player;
-    this.invulUntil = 0; // seconds
+    this.invulUntil = 0;     // seconds
+    this.shakeUntil = 0;     // seconds
+    this.shakeMag = 0;       // px
   }
   hit(){
     const t = now();
@@ -17,9 +19,15 @@ class PlayerCircle {
   }
   draw(ctx){
     ctx.save();
+    // 흔들림 오프셋
+    let ox = 0, oy = 0;
+    if(now() < this.shakeUntil){
+      ox = (Math.random()*2-1) * this.shakeMag;
+      oy = (Math.random()*2-1) * this.shakeMag;
+    }
     ctx.fillStyle = this.color;
     ctx.beginPath();
-    ctx.arc(this.pos.x, this.pos.y, this.radius, 0, TAU);
+    ctx.arc(this.pos.x + ox, this.pos.y + oy, this.radius, 0, TAU);
     ctx.fill();
     ctx.restore();
   }
@@ -46,6 +54,7 @@ class Enemy {
     this.heading = rand(0, TAU);
     this.speed = 0; // set by group
     this.column = 0; // used when in formation (0 or 1 for 2열)
+    this.slotInCol = 0;
     this.lastLineDamageTick = 0;
   }
   isAlive(){ return this.hp > 0; }
@@ -66,7 +75,7 @@ class Enemy {
       if(Math.random()<0.10) g.dropItem('heart', this.pos.clone());
       if(Math.random()<0.10) g.dropItem('power', this.pos.clone());
     } else if(this.type === ENEMY_TYPE.BOSS){
-      // optional: nothing for prototype
+      // optional for prototype
     }
   }
   update(dt){
@@ -89,7 +98,7 @@ class Enemy {
         this.blinkUntil = 0;
       }
     } else if(this.type === ENEMY_TYPE.BOSS){
-      // Boss behavior: 3s move + 1s stop; fire 6 missiles at stop
+      // Boss: 3s move + 1s stop; stop에서 6발
       if(this.bossMoveTimer > 0){
         const step = Math.min(this.bossMoveTimer, dt);
         this.pos.add(Vec2.fromAngle(this.heading, this.game.enemySpeed * step));
@@ -125,8 +134,7 @@ class Enemy {
     ctx.save();
     const t = now();
     const blink = t < this.blinkUntil ? 0.5 + 0.5*Math.sin(t*20) : 0;
-    const col = this.baseColor;
-    ctx.fillStyle = col;
+    ctx.fillStyle = this.baseColor;
     if(blink){ ctx.globalAlpha = 0.5 + 0.5*blink; }
     ctx.beginPath();
     ctx.arc(this.pos.x, this.pos.y, this.radius, 0, TAU);
@@ -143,65 +151,124 @@ class Enemy {
   }
 }
 
-// 선두 추종(일렬/2열) 포메이션
+// --- 선두 추종(지렁이) 포메이션 with trail following ---
 class EnemyGroup {
   constructor(game, formation, count, typeConfigFn){
     this.game = game;
-    this.columns = formation;         // 1 또는 2
+    this.columns = formation;         // 1 or 2
     this.members = [];                // Enemy[]
     this.speed = game.enemySpeed;
 
-    // 간격/오프셋
-    this.spacing = game.enemyRadius * 2.3;     // 앞뒤 간격
+    // 거리 파라미터
+    this.spacing = game.enemyRadius * 2.3;     // 앞뒤 간격(슬롯 당)
     this.sideOffset = game.enemyRadius * 2.2;  // 2열 좌우 간격
 
-    // 컬럼별 선두 앵커
-    this.heads = new Array(this.columns || 1).fill(0).map(()=>({
-      pos: new Vec2(-999,-999),
-      dir: 0
-    }));
+    // 컬럼별 선두(head)와 trail
+    const cols = this.columns || 1;
+    this.heads  = new Array(cols).fill(0).map(()=>({ pos:new Vec2(-999,-999), dir:0 }));
+    this.trails = new Array(cols).fill(0).map(()=>({ pts:[], lens:[], total:0 })); // 누적거리 배열
 
-    // 멤버 생성 (+ 컬럼/슬롯 지정)
+    // 멤버 생성(+ 컬럼/슬롯 지정)
     for(let i=0;i<count;i++){
-      const col = (this.columns===2) ? (i%2) : 0;               // 0 또는 1
-      const slot = (this.columns===2) ? Math.floor(i/2) : i;    // 컬럼 내 순번(0이 선두 바로 뒤)
+      const col = (cols===2) ? (i%2) : 0;
+      const slot = (cols===2) ? Math.floor(i/2) : i; // 0이 선두 바로 뒤
       const e = new Enemy(game, -999,-999, game.enemyRadius, ENEMY_TYPE.NORMAL, 3);
       e.column = col;
-      e.slotInCol = slot;  // 죽어도 슬롯은 유지(빈칸)
+      e.slotInCol = slot;
       typeConfigFn(e, i, col, slot);
       this.members.push(e);
     }
   }
 
   setPositions(origin, dir){
+    const cols = this.columns || 1;
     const perp = Vec2.fromAngle(dir + Math.PI/2, this.sideOffset);
-    if(this.columns===1){
+    if(cols===1){
       this.heads[0].pos = origin.clone();
       this.heads[0].dir = dir;
     } else {
-      this.heads[0].pos = origin.clone().add(perp.clone().mul(-1)); // 왼쪽
-      this.heads[1].pos = origin.clone().add(perp.clone().mul(+1)); // 오른쪽
+      this.heads[0].pos = origin.clone().add(perp.clone().mul(-1));
+      this.heads[1].pos = origin.clone().add(perp.clone().mul(+1));
       this.heads[0].dir = this.heads[1].dir = dir;
     }
-    this._applySlotsToPositions();
+    // 초기 trail 채우기(짧은 선)
+    for(let c=0;c<cols;c++){
+      const tr = this.trails[c];
+      tr.pts = [ this.heads[c].pos.clone(), this.heads[c].pos.clone().add(Vec2.fromAngle(dir, -1)) ];
+      tr.lens = [0, 1];
+      tr.total = 1;
+    }
+    // 초기 위치 배치(선두 뒤 슬롯대로)
+    this._applySlotsFromTrail();
   }
 
-  _applySlotsToPositions(){
-    for(const e of this.members){
-      if(!e) continue;
-      const head = this.heads[e.column];
-      const fwd = Vec2.fromAngle(head.dir, 1);
-      const back = fwd.clone().mul(-this.spacing * (e.slotInCol + 1));
-      const lateral = (this.columns===2)
-        ? fwd.clone().perp().mul(e.column===0 ? -this.sideOffset : +this.sideOffset)
-        : new Vec2(0,0);
-      e.pos = head.pos.clone().add(back).add(lateral);
-      e.heading = head.dir;
-      e.speed = this.speed;
+  _pushTrail(c, newPos){
+    const tr = this.trails[c];
+    const pts = tr.pts, lens = tr.lens;
+    const last = pts[pts.length-1];
+    const dx = newPos.x - last.x, dy = newPos.y - last.y;
+    const d = Math.hypot(dx, dy);
+    if(d < 0.0001) return;
+    pts.push(newPos.clone());
+    lens.push(tr.total + d);
+    tr.total += d;
+
+    // trail 길이 제한(최대 필요 거리 = (최대 슬롯+1)*spacing + 여유)
+    let maxSlot = 0;
+    for(const e of this.members) if(e.column===c) maxSlot = Math.max(maxSlot, e.slotInCol);
+    const need = (maxSlot + 1) * this.spacing + 200;
+    // 오래된 앞쪽 포인트 제거
+    while(pts.length > 2 && (tr.total - lens[1]) > need){
+      pts.shift();
+      const off = lens[1];
+      lens.shift();
+      for(let i=0;i<lens.length;i++) lens[i] -= off;
+      tr.total -= off;
+    }
+  }
+
+  _sampleTrail(c, distBehind){
+    // trail의 끝(=현재 head)에 대한 뒤쪽 거리 위치를 샘플링
+    const tr = this.trails[c];
+    const pts = tr.pts, lens = tr.lens;
+    if(pts.length<2) return this.heads[c].pos.clone();
+    const target = Math.max(0, tr.total - distBehind);
+    // 이분 탐색 대신 선형(포인트 수가 작음)
+    let i=1;
+    while(i<lens.length && lens[i] < target) i++;
+    if(i>=lens.length) return pts[pts.length-1].clone();
+    const a = pts[i-1], b = pts[i];
+    const la = lens[i-1], lb = lens[i];
+    const t = (lb===la) ? 0 : (target - la)/(lb - la);
+    return new Vec2( lerp(a.x,b.x,t), lerp(a.y,b.y,t) );
+  }
+
+  _applySlotsFromTrail(){
+    const cols = this.columns || 1;
+    for(let c=0;c<cols;c++){
+      const head = this.heads[c];
+      // head의 현재 위치를 trail에 푸시(그리기/샘플용)
+      this._pushTrail(c, head.pos);
+      for(const e of this.members){
+        if(e.column!==c) continue;
+        const dist = (e.slotInCol + 1) * this.spacing;
+        let p = this._sampleTrail(c, dist);
+        // 2열이면 좌우 측방 오프셋
+        if(cols===2){
+          // head 방향 기준으로 perp
+          const fwd = Vec2.fromAngle(head.dir, 1);
+          const lat = fwd.perp().mul(c===0 ? -this.sideOffset : +this.sideOffset);
+          p.add(lat);
+        }
+        e.pos = p;
+        e.heading = head.dir;
+        e.speed = this.speed;
+      }
     }
   }
 
   _bounceHead(c){
+    // 화면 벽에서 방향 반사(+약간 랜덤)
     const g = this.game;
     const head = this.heads[c];
     const r = g.enemyRadius;
@@ -213,22 +280,21 @@ class EnemyGroup {
     if(head.pos.y > g.height - r){ head.pos.y = g.height - r; head.dir = -head.dir; bounced = true; }
 
     if(bounced){
-      head.dir = wrapAngle(head.dir + rand(-0.5, 0.5)); // 약간 랜덤
+      head.dir = wrapAngle(head.dir + rand(-0.5, 0.5));
     }
   }
 
   update(dt){
-    // 선두 이동 + 벽 반사
+    // 선두 이동
     for(let c=0;c<(this.columns||1);c++){
       const head = this.heads[c];
-      const step = Vec2.fromAngle(head.dir, this.speed * dt);
-      head.pos.add(step);
+      head.pos.add(Vec2.fromAngle(head.dir, this.speed * dt));
       this._bounceHead(c);
     }
-    // 슬롯 재적용(빈칸 유지)
-    this._applySlotsToPositions();
+    // trail 기반 재배치(연속적 이동)
+    this._applySlotsFromTrail();
 
-    // 멤버 개별 업데이트(슈터/보스 내부 로직)
+    // 슈터/보스 등의 개인 업데이트
     for(const e of this.members){
       e.update(dt);
     }
