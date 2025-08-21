@@ -43,10 +43,10 @@ class Game {
     renderHearts(this.hearts, this.heartsMax);
     setPowerLabel(this.powerLevel);
 
-    // start button
+    // 시작 버튼 핸들러: 오버레이 숨기고 캔버스 입력 보장
     document.getElementById('startBtn').onclick = ()=>{
       document.getElementById('overlay').classList.add('hidden');
-      document.getElementById('game').classList.remove('blocked'); // ← 추가
+      this.canvas.style.pointerEvents = 'auto'; // 버튼 뒤 캔버스 입력 활성화
       this.start();
     };
   }
@@ -112,15 +112,14 @@ class Game {
     this.items.push(new Item(kind, pos));
   }
 
-  // Compute active line count based on power & distance.
-  // IMPORTANT: distance thresholds are based on "gap" (edge-to-edge) not center distance.
-  // gap = centerDistance - playerDiameter.
+  // 활성 라인 수 계산(파워/거리 제한 동시 적용)
+  // gap = centerDistance - playerDiameter (테두리 간 간격 기준)
   distanceAllowedLines(){
     const A = this.playerA.pos, B=this.playerB.pos;
     const centerDist = A.clone().sub(B).len();
     const D = this.playerDiameter;
-    const gap = Math.max(0, centerDist - D); // space between the two circles
-    if(gap >= 6*D) return 0;       // too far -> disabled (dashed)
+    const gap = Math.max(0, centerDist - D); // 둘 사이 빈 공간
+    if(gap >= 6*D) return 0;       // 너무 멀면 비활성(점선)
     if(gap > 4*D) return 1;
     if(gap > 2*D) return 2;
     return 3;
@@ -132,7 +131,6 @@ class Game {
   update(dt){
     // Update groups
     for(const g of this.groups) g.update(dt);
-    // Remove dead enemies in groups kept (holes remain)
     // Update single enemies
     for(const e of this.enemies) e.update(dt);
     // Missiles
