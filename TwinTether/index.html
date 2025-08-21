@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>TwinTether (Prototype)</title>
+  <link rel="stylesheet" href="styles.css" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+</head>
+<body>
+  <div id="app">
+    <div id="hud">
+      <div id="hearts"></div>
+      <div id="status">
+        <span id="powerLevel">Lines: 1</span>
+        <span id="waveInfo"></span>
+      </div>
+    </div>
+    <canvas id="game" tabindex="0"></canvas>
+
+    <div id="overlay" class="center">
+      <div class="panel">
+        <h1> TwinTether </h1>
+        <p>두 개의 원을 드래그하여 연결선으로 적을 타격하세요!</p>
+        <button id="startBtn">시작하기</button>
+      </div>
+    </div>
+
+    <div id="popup" class="hidden"></div>
+  </div>
+
+  <script src="src/utils.js"></script>
+  <script src="src/input.js"></script>
+  <script src="src/entities.js"></script>
+  <script src="src/ui.js"></script>
+  <script src="src/waves.js"></script>
+  <script src="src/game.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>
