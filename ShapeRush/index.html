@@ -2,12 +2,12 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
-<!-- 확대 방지: 더블탭/핀치 방지 -->
+<!-- 더블탭 확대 방지 -->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>ShapeRush</title>
 <style>
   :root{
-    --design-w:390px;  /* 고정 가상 해상도 */
+    --design-w:390px;  /* 가상 해상도 */
     --design-h:844px;
     --top-h:360px;     /* 상단 플레이 영역 높이 */
     --gap:12px;
@@ -19,7 +19,9 @@
     --brand:#ffd166;
   }
   *{box-sizing:border-box}
-  html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-family:system-ui, -apple-system, Segoe UI, Roboto, Noto Sans KR, Apple SD Gothic Neo, sans-serif;
+  html,body{
+    height:100%; margin:0; background:var(--bg); color:var(--text);
+    font-family:system-ui, -apple-system, Segoe UI, Roboto, Noto Sans KR, Apple SD Gothic Neo, sans-serif;
     touch-action: manipulation; -webkit-user-select:none; user-select:none; -webkit-text-size-adjust:100%;
   }
   .viewport{ display:grid; place-items:center; height:100%; width:100%; }
@@ -27,8 +29,7 @@
     position:relative; width:var(--design-w); height:var(--design-h);
     background:linear-gradient(180deg,#0f1118 0%, #11131b 100%);
     border-radius:18px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.5);
-    transform-origin:top center;
-    touch-action: manipulation;
+    transform-origin:top center; touch-action: manipulation;
   }
   /* 상단 영역 */
   .top{
@@ -61,7 +62,7 @@
     100%{ box-shadow: inset 0 0 0 1px rgba(142,208,255,.15), 0 0 0 rgba(0,0,0,0);}
   }
   .shape-svg{ width:70%; height:70%; pointer-events:none; }
-  /* 오버레이들 */
+  /* 오버레이 공통 */
   .overlay{
     position:absolute; inset:0; display:grid; place-items:center; background:rgba(0,0,0,.55);
     backdrop-filter: blur(2px);
@@ -70,20 +71,33 @@
     width:82%; max-width:360px; text-align:center; background:#151826; border-radius:16px; padding:26px 22px;
     box-shadow:0 10px 30px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.06);
   }
-  .title{ font-size:26px; margin:2px 0 12px; font-weight:700; letter-spacing:.3px }
-  .subtitle{ font-size:14px; color:var(--brand); margin-bottom:10px; letter-spacing:.2px }
-  .desc{ font-size:15px; opacity:.92; line-height:1.6; text-align:left; margin:0 auto; max-width:30em }
+  .title{ font-size:26px; margin:2px 0 10px; font-weight:700; letter-spacing:.3px }
+  .subtitle{ font-size:14px; color:var(--brand); margin-bottom:12px; letter-spacing:.2px }
+  .desc{ font-size:15px; opacity:.92; line-height:1.6; text-align:left; margin:0 auto 10px; max-width:30em }
   .desc ul{ margin:0; padding-left:1.2em }
   .desc li{ margin:.35em 0 }
+  .btn-row{ display:flex; gap:10px; margin-top:14px }
   .btn{
-    margin-top:16px; width:100%; padding:15px 16px; font-size:17px; border-radius:12px; border:none; cursor:pointer; 
+    flex:1; padding:15px 16px; font-size:17px; border-radius:12px; border:none; cursor:pointer; 
     color:#0a0d14; background:linear-gradient(180deg,#bde4ff,#8ed0ff);
-    box-shadow: 0 6px 18px rgba(142,208,255,.35);
-    touch-action:manipulation;
+    box-shadow: 0 6px 18px rgba(142,208,255,.35); touch-action:manipulation;
   }
+  .btn.secondary{ color:#e6e8ef; background:#242a3c; box-shadow:none; }
   .btn:active{transform:translateY(1px)}
   .gameover .score{ font-size:20px; margin:8px 0 6px}
   .gameover .small{ opacity:.85; font-size:14px}
+  /* 옵션 모달 */
+  .opt-panel{ text-align:left }
+  .opt-title{ font-size:20px; font-weight:700; margin:0 0 8px }
+  .opt-section{ margin:12px 0 6px; font-weight:600; font-size:14px }
+  .opt-group{ display:flex; flex-wrap:wrap; gap:8px }
+  .chip{
+    border:1px solid rgba(255,255,255,.15); padding:8px 10px; border-radius:10px; cursor:pointer; 
+    user-select:none; font-size:14px; background:#1a1f30;
+  }
+  .chip[data-selected="true"]{ border-color: var(--accent); background:#1e2a3e }
+  .opt-actions{ display:flex; gap:10px; margin-top:14px }
+  .opt-actions button{ flex:1 }
   /* 오류 흔들림 */
   .shake{ animation:shake .25s ease; }
   @keyframes shake{
@@ -91,6 +105,8 @@
     25%{ transform:translateX(-6px) }
     75%{ transform:translateX(6px) }
   }
+  /* 작은 요약 라벨 */
+  .summary{ margin-top:8px; font-size:13px; opacity:.9; text-align:center }
 </style>
 </head>
 <body>
@@ -109,14 +125,18 @@
         <div class="subtitle">Memorize. Tap. Rush.</div>
         <div class="desc">
           <ul>
-            <li>상단에 새 <b>모양 1개</b>가 <b>오른쪽 → 왼쪽</b>으로 <b>5초</b> 동안 이동합니다.</li>
+            <li>상단에 새 <b>모양 1개</b>가 <b>오른쪽 → 왼쪽</b>으로 <b class="exp-ms-label">5초</b> 동안 이동해요.</li>
             <li>아래에서 <b>지금까지 나온 모든 모양을 순서대로</b> 입력하세요. (중복 가능)</li>
-            <li><b>틀리거나</b> 5초 안에 전부 입력하지 못하면 <b>종료</b>됩니다.</li>
-            <li>같은 모양이 연속일 수 있어요. <b>버튼을 빠르게 여러 번 눌러도 화면이 확대되지 않도록</b> 설정했습니다.</li>
-            <li>점수: 단계 완료 시 <code>10×단계 + 보너스</code>, 보너스 = <code>10×단계 × (5−경과)/5</code></li>
+            <li><b>틀리거나</b> 제한시간 내에 전부 입력하지 못하면 <b>종료</b>됩니다.</li>
+            <li>같은 모양이 연속일 수 있어요. 빠르게 여러 번 눌러도 화면 확대는 되지 않아요.</li>
+            <li>점수 = <code>10×단계 + 보너스</code>, 보너스 = <code>10×단계 × (5−경과)/5</code></li>
           </ul>
         </div>
-        <button class="btn" id="startBtn">시작</button>
+        <div class="summary">현재 설정 · 노출시간: <b class="exp-ms-label">5초</b> · 모양 개수: <b class="shape-count-label">12</b></div>
+        <div class="btn-row">
+          <button class="btn" id="startBtn">시작</button>
+          <button class="btn secondary" id="optBtnStart">옵션</button>
+        </div>
       </div>
     </div>
 
@@ -126,9 +146,41 @@
         <div class="title">게임 종료</div>
         <div class="score">최종 점수 <b id="finalScore">0</b></div>
         <div class="small">진행 단계 <b id="finalStage">0</b></div>
-        <button class="btn" id="retryBtn">다시하기</button>
+        <div class="summary">설정 · 노출시간: <b class="exp-ms-label">5초</b> · 모양 개수: <b class="shape-count-label">12</b></div>
+        <div class="btn-row">
+          <button class="btn" id="retryBtn">다시하기</button>
+          <button class="btn secondary" id="optBtnEnd">옵션</button>
+        </div>
       </div>
     </div>
+
+    <!-- 옵션 모달 -->
+    <div class="overlay" id="optionsOverlay" style="display:none">
+      <div class="panel opt-panel">
+        <div class="opt-title">옵션</div>
+
+        <div class="opt-section">1) 모양 노출 시간</div>
+        <div class="opt-group" id="expGroup">
+          <div class="chip" data-exp="5000">5초</div>
+          <div class="chip" data-exp="7000">7초</div>
+          <div class="chip" data-exp="10000">10초</div>
+        </div>
+
+        <div class="opt-section">2) 사용되는 모양의 개수</div>
+        <div class="opt-group" id="shapeCountGroup">
+          <div class="chip" data-count="3">3</div>
+          <div class="chip" data-count="6">6</div>
+          <div class="chip" data-count="9">9</div>
+          <div class="chip" data-count="12">12</div>
+        </div>
+
+        <div class="opt-actions">
+          <button class="btn secondary" id="optCancel">취소</button>
+          <button class="btn" id="optApply">적용</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -165,13 +217,75 @@
 
   const startOverlay = document.getElementById('startOverlay');
   const gameoverOverlay = document.getElementById('gameoverOverlay');
+  const optionsOverlay = document.getElementById('optionsOverlay');
   const startBtn = document.getElementById('startBtn');
   const retryBtn = document.getElementById('retryBtn');
+  const optBtnStart = document.getElementById('optBtnStart');
+  const optBtnEnd = document.getElementById('optBtnEnd');
+  const optCancel = document.getElementById('optCancel');
+  const optApply = document.getElementById('optApply');
   const finalScore = document.getElementById('finalScore');
   const finalStage = document.getElementById('finalStage');
+  const btnGrid = document.getElementById('buttonGrid');
 
-  /*** 모양 정의 ***/
-  const SHAPES = [
+  const expGroup = document.getElementById('expGroup');
+  const shapeCountGroup = document.getElementById('shapeCountGroup');
+
+  /*** 설정 상태 ***/
+  const SETTINGS = {
+    exposureMs: 5000,    // 5, 7, 10초
+    shapeCount: 12       // 3,6,9,12
+  };
+
+  const expLabels = document.querySelectorAll('.exp-ms-label');
+  const countLabels = document.querySelectorAll('.shape-count-label');
+  function refreshSummaryLabels(){
+    const sec = Math.round(SETTINGS.exposureMs/1000);
+    expLabels.forEach(el => el.textContent = sec + '초');
+    countLabels.forEach(el => el.textContent = SETTINGS.shapeCount);
+  }
+  refreshSummaryLabels();
+
+  // 옵션 그룹 초기화/선택 토글
+  function initOptionChips(){
+    [...expGroup.children].forEach(chip=>{
+      chip.dataset.selected = (parseInt(chip.dataset.exp,10) === SETTINGS.exposureMs) ? 'true' : 'false';
+      chip.onclick = () => {
+        [...expGroup.children].forEach(c=>c.dataset.selected='false');
+        chip.dataset.selected='true';
+      };
+    });
+    [...shapeCountGroup.children].forEach(chip=>{
+      chip.dataset.selected = (parseInt(chip.dataset.count,10) === SETTINGS.shapeCount) ? 'true' : 'false';
+      chip.onclick = () => {
+        [...shapeCountGroup.children].forEach(c=>c.dataset.selected='false');
+        chip.dataset.selected='true';
+      };
+    });
+  }
+  initOptionChips();
+
+  function openOptions(){
+    initOptionChips();
+    optionsOverlay.style.display = 'grid';
+  }
+  function closeOptions(){
+    optionsOverlay.style.display = 'none';
+  }
+  optBtnStart.onclick = openOptions;
+  optBtnEnd.onclick = openOptions;
+  optCancel.onclick = closeOptions;
+  optApply.onclick = () => {
+    const selExp = [...expGroup.children].find(c=>c.dataset.selected==='true');
+    const selCount = [...shapeCountGroup.children].find(c=>c.dataset.selected==='true');
+    if(selExp) SETTINGS.exposureMs = parseInt(selExp.dataset.exp,10);
+    if(selCount) SETTINGS.shapeCount = parseInt(selCount.dataset.count,10);
+    refreshSummaryLabels();
+    closeOptions();
+  };
+
+  /*** 모양 정의(12종 고정 풀) ***/
+  const SHAPES_MASTER = [
     {id:'circle_f', type:'circle', filled:true,  label:'원(채움)'},
     {id:'circle_o', type:'circle', filled:false, label:'원(외곽)'},
     {id:'square_f', type:'square', filled:true,  label:'네모(채움)'},
@@ -185,10 +299,21 @@
     {id:'ring_f',   type:'ring', filled:true,   label:'2중원(채움) 변경형'},
     {id:'ring_o',   type:'ring', filled:false,  label:'2중원(외곽)'},
   ];
-  const SHAPE_INDEX = Object.fromEntries(SHAPES.map((s,i)=>[s.id,i]));
+  const SHAPE_INDEX_MASTER = Object.fromEntries(SHAPES_MASTER.map((s,i)=>[s.id,i]));
+  let SHAPE_POOL = SHAPES_MASTER.slice(); // 게임마다 난수로 subset 구성
+  const SHAPE_INDEX = () => Object.fromEntries(SHAPE_POOL.map((s,i)=>[s.id,i]));
 
-  /*** 버튼 생성 (3×4) ***/
-  const btnGrid = document.getElementById('buttonGrid');
+  function buildShapePool(){
+    // SETTINGS.shapeCount 만큼 무작위로 선택(중복 없음)
+    const arr = SHAPES_MASTER.slice();
+    SHAPE_POOL = [];
+    while(SHAPE_POOL.length < SETTINGS.shapeCount && arr.length){
+      const idx = Math.floor(Math.random()*arr.length);
+      SHAPE_POOL.push(arr.splice(idx,1)[0]);
+    }
+  }
+
+  /*** 버튼 SVG 생성 ***/
   function createShapeSVG(def, color="#e6e8ef"){
     const NS="http://www.w3.org/2000/svg";
     const svg = document.createElementNS(NS,'svg');
@@ -198,7 +323,6 @@
     g.setAttribute('transform','translate(50,50)');
     const path = makeSVGPath(def);
     if(def.type==='ring' && def.filled && Array.isArray(path)){
-      // ring_f: 작은 채운 원 + 바깥 원 외곽선
       const [inner, outer] = path;
       inner.setAttribute('fill', color);
       inner.setAttribute('stroke', 'none');
@@ -253,14 +377,12 @@
       }
       case 'ring': {
         if(def.filled){
-          // 변경: 작은 채운 원 + 큰 원 외곽선
           const inner = document.createElementNS(NS,'path');
           inner.setAttribute('d', circlePath(0,0,R*0.6));
           const outer = document.createElementNS(NS,'path');
           outer.setAttribute('d', circlePath(0,0,R));
           return [inner, outer];
         }else{
-          // 기존: 이중 외곽선
           const outer = document.createElementNS(NS,'path');
           outer.setAttribute('d', circlePath(0,0,R));
           const inner = document.createElementNS(NS,'path');
@@ -290,7 +412,7 @@
 
   function buildButtons(){
     btnGrid.innerHTML='';
-    SHAPES.forEach(def=>{
+    SHAPE_POOL.forEach(def=>{
       const btn = document.createElement('button');
       btn.className = 'shape-btn';
       btn.dataset.sid = def.id;
@@ -299,7 +421,6 @@
       btnGrid.appendChild(btn);
     });
   }
-  buildButtons();
 
   /*** 게임 상태 ***/
   const STATE = { idle:'idle', playing:'playing', gameover:'gameover' };
@@ -311,7 +432,6 @@
   let inputIndex = 0;       // 현재 단계에서 맞춰야 할 인덱스
   let currentShape = null;  // 이번 단계 새로 등장한 모양(id)
   let stageStartTime = 0;   // 이번 단계 시작 시간 (ms)
-  const MOVE_MS = 5000;     // 오른쪽 -> 왼쪽 5초
   const EFFECT_MS = 250;    // 심박 연출 0.25초
   let effect = null;        // {start:number, sid:string, x:number, y:number, size:number}
   let rafId = 0;
@@ -338,7 +458,7 @@
         const pos = movingShapePos(now);
         effect = { start: now, sid: currentShape, x: pos.x, y: pos.y, size: pos.size };
 
-        // 다음 단계 (연출 중에도 타이머는 계속 흐르지만, 새 단계는 연출 종료 직후 시작)
+        // 다음 단계 (연출 중에도 타이머는 계속 흐름, 새 단계는 효과 종료 후 시작)
         nextStageAfter(EFFECT_MS);
       }
     }else{
@@ -356,7 +476,7 @@
     setTimeout(()=>btn.classList.remove('shake'), 250);
   }
 
-  /*** 단계 제어 ***/
+  /*** 단계/게임 제어 ***/
   function startGame(){
     gameState = STATE.playing;
     stage = 0;
@@ -364,6 +484,10 @@
     sequence = [];
     inputIndex = 0;
     effect = null;
+    // 설정 반영: 풀 구성 & 버튼 재생성
+    buildShapePool();
+    buildButtons();
+
     startOverlay.style.display='none';
     gameoverOverlay.style.display='none';
     HUD_STAGE.textContent = '1';
@@ -374,7 +498,7 @@
   function nextStage(){
     stage++;
     // 새 모양 추가 (중복 허용)
-    const rand = SHAPES[Math.floor(Math.random()*SHAPES.length)];
+    const rand = SHAPE_POOL[Math.floor(Math.random()*SHAPE_POOL.length)];
     sequence.push(rand.id);
     currentShape = rand.id;
     inputIndex = 0;
@@ -406,9 +530,9 @@
       const pos = movingShapePos(now);
       drawShapeAt(currentShape, pos.x, pos.y, pos.size, 1, 0);
 
-      // 시간 초과
+      // 시간 초과: 현재 설정의 노출시간 사용
       const t = now - stageStartTime;
-      if(t >= MOVE_MS && inputIndex < sequence.length){
+      if(t >= SETTINGS.exposureMs && inputIndex < sequence.length){
         endGame();
       }
     }
@@ -431,14 +555,14 @@
     const startX = TOP_W + size;
     const endX = -size;
     const y = TOP_H * 0.55;
-    const p = Math.min(1, (nowMs - stageStartTime)/MOVE_MS);
+    const p = Math.min(1, (nowMs - stageStartTime)/SETTINGS.exposureMs);
     const x = startX + (endX - startX) * p;
     return {x,y,size};
   }
 
   /*** 캔버스 도형 ***/
   function drawShapeAt(sid, x, y, size, alpha=1, rotation=0){
-    const def = SHAPES[SHAPE_INDEX[sid]];
+    const def = SHAPE_POOL[SHAPE_INDEX()[sid]];
     if(!def) return;
     CTX.save();
     CTX.translate(x, y);
@@ -523,10 +647,13 @@
     startGame();
   });
 
+  // 옵션 외부 탭 닫힘 방지(모달 유지). 필요시 배경 클릭으로 닫고 싶으면 아래 주석 해제.
+  // optionsOverlay.addEventListener('click', (e)=>{ if(e.target===optionsOverlay) closeOptions(); });
+
   /*** 키보드 테스트(옵션) ***/
   window.addEventListener('keydown', (e)=>{
     if(gameState!==STATE.playing) return;
-    const map = ['1','2','3','4','5','6','7','8','9','q','w','e'];
+    const map = ['1','2','3','4','5','6','7','8','9','q','w','e']; // 최대 12개
     const idx = map.indexOf(e.key.toLowerCase());
     if(idx>=0){
       const btn = btnGrid.children[idx];
