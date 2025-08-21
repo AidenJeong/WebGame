@@ -41,3 +41,6 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0e0f13; color: #e
 #hud { z-index: 20; }
 #overlay { position: absolute; inset: 0; z-index: 30; pointer-events: auto; }
 #popup { position: absolute; inset: 0; z-index: 40; pointer-events: auto; }
+
+/* NEW: 시작 전에는 캔버스가 포인터 이벤트를 못 받게 막기 */
+#game.blocked { pointer-events: none; }
