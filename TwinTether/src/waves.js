@@ -203,63 +203,55 @@ class WaveManager {
   _spawnWaveAt(n, origin, dir){
     const g = this.game;
     const W=g.width, H=g.height;
-
+  
     if(n===1){
-      const group = new EnemyGroup(g, 1, 10, function(e,i,col,k){
-        e.type = ENEMY_TYPE.NORMAL; e.maxHp=3; e.hp=3; e.radius=g.enemyRadius;
-      });
+      const group = new EnemyGroup(g, 1, 10, function(e){ e.type=ENEMY_TYPE.NORMAL; e.maxHp=3; e.hp=3; e.radius=g.enemyRadius; });
       group.setPositions(origin, dir);
       g.groups.push(group);
-
+  
     }else if(n===2){
-      const group = new EnemyGroup(g, 2, 20, function(e,i,col,k){
+      const group = new EnemyGroup(g, 2, 20, function(e, i, col, k){
         const lenPerCol = 10;
         const isHead = (k===0);
         const isTail = (k===lenPerCol-1);
-        if(isHead || isTail){
-          e.type=ENEMY_TYPE.SHOOTER; e.maxHp=5; e.hp=5; e.radius=g.enemyRadius;
-        }else{
-          e.type=ENEMY_TYPE.NORMAL; e.maxHp=3; e.hp=3; e.radius=g.enemyRadius;
-        }
+        if(isHead || isTail){ e.type=ENEMY_TYPE.SHOOTER; e.maxHp=5; e.hp=5; e.radius=g.enemyRadius; }
+        else { e.type=ENEMY_TYPE.NORMAL; e.maxHp=3; e.hp=3; e.radius=g.enemyRadius; }
       });
       group.setPositions(origin, dir);
       g.groups.push(group);
-
+  
     }else if(n===3){
-      const g1 = new EnemyGroup(g, 1, 10, function(e,i,col,k){
-        e.type=ENEMY_TYPE.SHOOTER; e.maxHp=5; e.hp=5; e.radius=g.enemyRadius;
-      });
+      // 1열×10(모두 슈터)
+      const g1 = new EnemyGroup(g, 1, 10, function(e){ e.type=ENEMY_TYPE.SHOOTER; e.maxHp=5; e.hp=5; e.radius=g.enemyRadius; });
       g1.setPositions(origin, dir);
       g.groups.push(g1);
-
-      const edge2 = (randInt(0,1)===0)? ((edge+2)%4) : edge;
+  
+      // 2열×20(모두 일반) — 'edge' 참조 제거, 독립 무작위 등장
+      const e2 = randInt(0,3);
       let origin2, dir2;
-      if(edge2===0){ origin2 = new Vec2(rand(W*0.2,W*0.8), -20); dir2 = Math.PI/2; }
-      else if(edge2===2){ origin2 = new Vec2(rand(W*0.2,W*0.8), H+20); dir2 = -Math.PI/2; }
-      else if(edge2===1){ origin2 = new Vec2(W+20, rand(H*0.2,H*0.8)); dir2 = Math.PI; }
+      if(e2===0){ origin2 = new Vec2(rand(W*0.2,W*0.8), -20); dir2 = Math.PI/2; }
+      else if(e2===2){ origin2 = new Vec2(rand(W*0.2,W*0.8), H+20); dir2 = -Math.PI/2; }
+      else if(e2===1){ origin2 = new Vec2(W+20, rand(H*0.2,H*0.8)); dir2 = Math.PI; }
       else { origin2 = new Vec2(-20, rand(H*0.2,H*0.8)); dir2 = 0; }
-
-      const g2 = new EnemyGroup(g, 2, 20, function(e,i,col,k){
-        e.type=ENEMY_TYPE.NORMAL; e.maxHp=3; e.hp=3; e.radius=g.enemyRadius;
-      });
+  
+      const g2 = new EnemyGroup(g, 2, 20, function(e){ e.type=ENEMY_TYPE.NORMAL; e.maxHp=3; e.hp=3; e.radius=g.enemyRadius; });
       g2.setPositions(origin2, dir2);
       g.groups.push(g2);
-
+  
     }else if(n===4){
+      // 2열 종대 3그룹 동시 등장(모두 일반)
       for(let gi=0; gi<3; gi++){
-        const e4edge = randInt(0,3);
+        const e4 = randInt(0,3);
         let o, d;
-        if(e4edge===0){ o = new Vec2(rand(W*0.2,W*0.8), -20); d = Math.PI/2; }
-        else if(e4edge===2){ o = new Vec2(rand(W*0.2,W*0.8), H+20); d = -Math.PI/2; }
-        else if(e4edge===1){ o = new Vec2(W+20, rand(H*0.2,H*0.8)); d = Math.PI; }
+        if(e4===0){ o = new Vec2(rand(W*0.2,W*0.8), -20); d = Math.PI/2; }
+        else if(e4===2){ o = new Vec2(rand(W*0.2,W*0.8), H+20); d = -Math.PI/2; }
+        else if(e4===1){ o = new Vec2(W+20, rand(H*0.2,H*0.8)); d = Math.PI; }
         else { o = new Vec2(-20, rand(H*0.2,H*0.8)); d = 0; }
-        const g4 = new EnemyGroup(g, 2, 20, function(e,i,col,k){
-          e.type=ENEMY_TYPE.NORMAL; e.maxHp=3; e.hp=3; e.radius=g.enemyRadius;
-        });
+        const g4 = new EnemyGroup(g, 2, 20, function(e){ e.type=ENEMY_TYPE.NORMAL; e.maxHp=3; e.hp=3; e.radius=g.enemyRadius; });
         g4.setPositions(o, d);
         g.groups.push(g4);
       }
-
+  
     }else if(n===5){
       const boss = new Enemy(g, origin.x, origin.y, g.playerRadius*2, ENEMY_TYPE.BOSS, 20);
       boss.heading = dir;
