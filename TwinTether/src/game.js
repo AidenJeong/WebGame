@@ -1,4 +1,4 @@
-// Core game orchestrator
+// Core game orchestrator (start/loop 인스턴스 바인딩 + 폴백 보강)
 class Game {
   constructor(canvas){
     this.canvas = canvas;
@@ -13,7 +13,7 @@ class Game {
     this.width = this.baseW;
     this.height = this.baseH;
     this.playerDiameter = Math.floor(Math.min(this.width, this.height) * 0.08);
-    this.playerRadius = this.playerDiameter/2|0;
+    this.playerRadius = (this.playerDiameter/2)|0;
     this.enemyRadius = Math.floor(this.playerRadius * 2/3);
     this.missileSpeed = Math.min(this.width, this.height)/1.5;
     this.enemySpeed = Math.min(this.width, this.height)/3;
@@ -42,15 +42,22 @@ class Game {
     renderHearts(this.hearts, this.heartsMax);
     setPowerLabel(this.powerLevel);
 
-    // bind loop for older Safari
-    this.loop = this.loop.bind(this);
+    // 메서드 바인딩(구형 사파리/웹뷰 안전)
+    this.loop  = this.loop.bind(this);
+    this.start = this.start.bind(this);
 
+    // 시작 버튼(별도의 index.html 안전장치가 있어도 여기서도 보강)
     var self = this;
-    document.getElementById('startBtn').onclick = function(){
-      document.getElementById('overlay').classList.add('hidden');
-      self.canvas.style.pointerEvents = 'auto';
-      self.start();
-    };
+    var btn = document.getElementById('startBtn');
+    if (btn && !btn._bound) {
+      btn.addEventListener('click', function(){
+        var overlay = document.getElementById('overlay');
+        if (overlay) overlay.classList.add('hidden');
+        self.canvas.style.pointerEvents = 'auto';
+        self.start();
+      }, {passive:false});
+      btn._bound = true;
+    }
   }
 
   resize(){
@@ -72,7 +79,8 @@ class Game {
     this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
   }
 
-  start(){
+  // ------- 폴백: 환경에 따라 class 메서드 인식이 깨지는 경우를 대비해
+  _startImpl(){
     this.hearts = this.heartsMax;
     this.powerLevel = 1;
     renderHearts(this.hearts, this.heartsMax);
@@ -86,6 +94,11 @@ class Game {
     this.running = true;
     this.lastTS = performance.now();
     requestAnimationFrame(this.loop);
+  }
+
+  start(){
+    // 혹시 외부에서 Game.prototype.start를 읽지 못하는 환경을 대비
+    return this._startImpl();
   }
 
   onStageClear(){
@@ -338,3 +351,6 @@ class Game {
     requestAnimationFrame(this.loop);
   }
 }
+
+// 전역 노출 보강(일부 환경에서 스코프 문제 방지)
+window.Game = Game;
