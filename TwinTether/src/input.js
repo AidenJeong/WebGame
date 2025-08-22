@@ -1,11 +1,18 @@
-// Pointer (multi-touch) manager with robust mobile fallback
+// Pointer (multi-touch) manager with robust mobile fallback (no class fields)
 class PointerManager {
   constructor(canvas, game){
     this.canvas = canvas;
     this.game = game;
     this.active = new Map(); // id -> {id, target: 'A'|'B'}
-
     this.supportsPointer = !!window.PointerEvent;
+
+    // bind methods (for older Safari)
+    this.onPointerDown = this.onPointerDown.bind(this);
+    this.onPointerMove = this.onPointerMove.bind(this);
+    this.onPointerUp   = this.onPointerUp.bind(this);
+    this.onTouchStart  = this.onTouchStart.bind(this);
+    this.onTouchMove   = this.onTouchMove.bind(this);
+    this.onTouchEnd    = this.onTouchEnd.bind(this);
 
     if (this.supportsPointer) {
       canvas.addEventListener('pointerdown', this.onPointerDown, {passive:false});
@@ -20,7 +27,7 @@ class PointerManager {
       canvas.addEventListener('touchcancel', this.onTouchEnd, {passive:false});
     }
 
-    canvas.addEventListener('contextmenu', e=>e.preventDefault());
+    canvas.addEventListener('contextmenu', function(e){ e.preventDefault(); });
   }
 
   // --- coords helpers ---
@@ -37,8 +44,8 @@ class PointerManager {
     const g = this.game;
     const dA = p.clone().sub(g.playerA.pos).len();
     const dB = p.clone().sub(g.playerB.pos).len();
-    const takenA = [...this.active.values()].some(v=>v.target==='A');
-    const takenB = [...this.active.values()].some(v=>v.target==='B');
+    var takenA = false, takenB = false;
+    this.active.forEach(function(v){ if(v.target==='A') takenA=true; if(v.target==='B') takenB=true; });
     if(!takenA && !takenB) return (dA <= dB) ? 'A' : 'B';
     if(!takenA) return 'A';
     if(!takenB) return 'B';
@@ -46,7 +53,7 @@ class PointerManager {
   }
 
   // --- Pointer Events path ---
-  onPointerDown = (e)=>{
+  onPointerDown(e){
     e.preventDefault();
     const p = this.toGameXYClient(e.clientX, e.clientY);
     const target = this._assignTarget(p);
@@ -54,40 +61,40 @@ class PointerManager {
 
     // IMPORTANT: 터치에서는 setPointerCapture 사용 안 함 (iOS Safari 이슈 회피)
     if(e.pointerType !== 'touch' && this.canvas.setPointerCapture){
-      try { this.canvas.setPointerCapture(e.pointerId); } catch {}
+      try { this.canvas.setPointerCapture(e.pointerId); } catch (_){}
     }
-    this.active.set(e.pointerId, { id:e.pointerId, target });
+    this.active.set(e.pointerId, { id:e.pointerId, target:target });
     this.game.setPlayerPos(target, p);
   }
-  onPointerMove = (e)=>{
+  onPointerMove(e){
     if(!this.active.has(e.pointerId)) return;
     e.preventDefault();
     const p = this.toGameXYClient(e.clientX, e.clientY);
     const target = this.active.get(e.pointerId).target;
     this.game.setPlayerPos(target, p);
   }
-  onPointerUp = (e)=>{
+  onPointerUp(e){
     if(this.active.has(e.pointerId)){
       this.active.delete(e.pointerId);
     }
   }
 
   // --- Touch Events fallback ---
-  onTouchStart = (e)=>{
+  onTouchStart(e){
     e.preventDefault();
-    for (let i=0;i<e.changedTouches.length;i++){
+    for (var i=0;i<e.changedTouches.length;i++){
       const t = e.changedTouches[i];
       const id = t.identifier;
       const p = this.toGameXYClient(t.clientX, t.clientY);
       const target = this._assignTarget(p);
       if(!target) continue;
-      this.active.set(id, { id, target });
+      this.active.set(id, { id:id, target:target });
       this.game.setPlayerPos(target, p);
     }
   }
-  onTouchMove = (e)=>{
+  onTouchMove(e){
     e.preventDefault();
-    for (let i=0;i<e.changedTouches.length;i++){
+    for (var i=0;i<e.changedTouches.length;i++){
       const t = e.changedTouches[i];
       const id = t.identifier;
       if(!this.active.has(id)) continue;
@@ -96,9 +103,9 @@ class PointerManager {
       this.game.setPlayerPos(target, p);
     }
   }
-  onTouchEnd = (e)=>{
+  onTouchEnd(e){
     e.preventDefault();
-    for (let i=0;i<e.changedTouches.length;i++){
+    for (var i=0;i<e.changedTouches.length;i++){
       const id = e.changedTouches[i].identifier;
       if(this.active.has(id)) this.active.delete(id);
     }
