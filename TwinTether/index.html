@@ -1,15 +1,17 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-  <title>TwinTether (Prototype)</title>
+  <meta charset="utf-8" />
+  <title>TwinTether</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
   <link rel="stylesheet" href="styles.css" />
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
   <div id="app">
+    <canvas id="game" tabindex="0"></canvas>
+
+    <!-- HUD -->
     <div id="hud">
       <div id="hearts"></div>
       <div id="status">
@@ -17,25 +19,52 @@
         <span id="waveInfo"></span>
       </div>
     </div>
-    <canvas id="game" class="blocked" tabindex="0"></canvas>
 
-    <div id="overlay" class="center" style="position:fixed; inset:0; z-index:9999; pointer-events:auto;">
+    <!-- 시작 오버레이: onclick으로 '직접' 시작 보장 -->
+    <div id="overlay" class="center">
       <div class="panel">
-        <h1> TwinTether </h1>
-        <p>두 개의 원을 드래그하여 연결선으로 적을 타격하세요!</p>
-        <button id="startBtn">시작하기</button>
+        <h1>TwinTether</h1>
+        <p>두 원을 움직여 라인으로 적을 베어내세요!</p>
+        <button id="startBtn" onclick="_startGame()">시작하기</button>
       </div>
     </div>
 
+    <!-- 팝업(게임오버/클리어) -->
     <div id="popup" class="hidden"></div>
   </div>
 
-  <script src="src/utils.js"></script>
-  <script src="src/input.js"></script>
-  <script src="src/entities.js"></script>
+  <!-- 스크립트: 의존 순서대로 (모듈 사용 안 함) -->
   <script src="src/ui.js"></script>
+  <script src="src/utils.js"></script>       <!-- Vec2, rand, clamp 등 (프로젝트에 있는 이름에 맞춰 두세요) -->
+  <script src="src/entities.js"></script>
   <script src="src/waves.js"></script>
+  <script src="src/input.js"></script>
   <script src="src/game.js"></script>
   <script src="src/main.js"></script>
+
+  <!-- 시작 버튼이 '항상' 동작하도록 보장하는 최후방 안전장치 -->
+  <script>
+  // 전역 안전 시작 함수(버튼 onclick으로 직접 호출)
+  function _startGame(){
+    try{
+      // 오버레이 먼저 숨기고 캔버스 입력 켜기
+      var overlay = document.getElementById('overlay');
+      var canvas  = document.getElementById('game');
+      if (overlay) overlay.classList.add('hidden');
+      if (canvas)  canvas.style.pointerEvents = 'auto';
+
+      // Game 인스턴스 없으면 생성
+      if (!window.game) {
+        var cv = document.getElementById('game');
+        window.game = new Game(cv);
+      }
+      // 시작
+      window.game.start();
+    }catch(err){
+      // 모바일에서 콘솔을 못 볼 때를 대비한 표시
+      alert('초기화 오류: ' + (err && err.message ? err.message : err));
+    }
+  }
+  </script>
 </body>
 </html>
