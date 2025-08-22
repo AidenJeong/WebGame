@@ -44,3 +44,13 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0e0f13; color: #e
   z-index: 9999;
   pointer-events: auto;
 }
+
+/* --- 모바일 제스처/스크롤 완전 차단 (입력 cancel 방지) --- */
+html, body { 
+  overscroll-behavior: none;      /* 체인 스크롤/바운스 방지 */
+  touch-action: none;             /* 기본 제스처(핀치/더블탭) 차단 */
+  -webkit-text-size-adjust: 100%;
+  -webkit-user-select: none;
+  user-select: none;
+}
+#app { touch-action: none; }
