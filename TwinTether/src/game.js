@@ -15,8 +15,8 @@ class Game {
     this.playerDiameter = Math.floor(Math.min(this.width, this.height) * 0.08);
     this.playerRadius = this.playerDiameter/2|0;
     this.enemyRadius = Math.floor(this.playerRadius * 2/3);
-    this.missileSpeed = Math.min(this.width, this.height)/1.5; // px per second
-    this.enemySpeed = Math.min(this.width, this.height)/3; // cross short side in ~3s
+    this.missileSpeed = Math.min(this.width, this.height)/1.5;
+    this.enemySpeed = Math.min(this.width, this.height)/3;
 
     // entities
     const ax = this.width*0.35, bx = this.width*0.65, y = this.height*0.8;
@@ -25,12 +25,12 @@ class Game {
     this.pointer = new PointerManager(canvas, this);
 
     this.powerMax = 3;
-    this.powerLevel = 1; // max lines allowed by power
+    this.powerLevel = 1;
     this.heartsMax = 5;
     this.hearts = 5;
 
-    this.groups = []; // EnemyGroup
-    this.enemies = []; // singles (boss etc.)
+    this.groups = [];
+    this.enemies = [];
     this.missiles = [];
     this.items = [];
 
@@ -42,12 +42,17 @@ class Game {
     renderHearts(this.hearts, this.heartsMax);
     setPowerLabel(this.powerLevel);
 
-    document.getElementById('startBtn').onclick = ()=>{
+    // bind loop for older Safari
+    this.loop = this.loop.bind(this);
+
+    var self = this;
+    document.getElementById('startBtn').onclick = function(){
       document.getElementById('overlay').classList.add('hidden');
-      this.canvas.style.pointerEvents = 'auto';
-      this.start();
+      self.canvas.style.pointerEvents = 'auto';
+      self.start();
     };
   }
+
   resize(){
     const parentW = window.innerWidth;
     const parentH = window.innerHeight;
@@ -66,6 +71,7 @@ class Game {
     this.canvas.height = Math.floor(this.baseH * this.dpr);
     this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
   }
+
   start(){
     this.hearts = this.heartsMax;
     this.powerLevel = 1;
@@ -78,8 +84,10 @@ class Game {
     this.items.length = 0;
     this.wave.start();
     this.running = true;
-    this.loop();
+    this.lastTS = performance.now();
+    requestAnimationFrame(this.loop);
   }
+
   onStageClear(){
     this.running = false;
     showPopup("축하합니다!", "클리어! 다시 플레이할까요?", ()=>this.start());
@@ -91,15 +99,12 @@ class Game {
   damagePlayer(n){
     this.hearts = Math.max(0, this.hearts - n);
     renderHearts(this.hearts, this.heartsMax);
-
-    // 피격 흔들림(양 원 모두)
     const t = now();
-    const mag = Math.max(2, this.playerRadius*0.15); // 살짝만
+    const mag = Math.max(2, this.playerRadius*0.15);
     this.playerA.shakeUntil = t + 0.25;
     this.playerB.shakeUntil = t + 0.25;
     this.playerA.shakeMag = mag;
     this.playerB.shakeMag = mag;
-
     if(this.hearts<=0) this.gameOver();
   }
   setPlayerPos(target, p){
@@ -109,26 +114,20 @@ class Game {
     if(target==='A') this.playerA.pos = p;
     else this.playerB.pos = p;
   }
-  spawnMissile(pos, vel){
-    this.missiles.push(new Missile(pos, vel, 5));
-  }
-  dropItem(kind, pos){
-    this.items.push(new Item(kind, pos));
-  }
+  spawnMissile(pos, vel){ this.missiles.push(new Missile(pos, vel, 5)); }
+  dropItem(kind, pos){ this.items.push(new Item(kind, pos)); }
 
   distanceAllowedLines(){
     const A = this.playerA.pos, B=this.playerB.pos;
     const centerDist = A.clone().sub(B).len();
     const D = this.playerDiameter;
-    const gap = Math.max(0, centerDist - D); // edge-to-edge gap
+    const gap = Math.max(0, centerDist - D);
     if(gap >= 6*D) return 0;
     if(gap > 4*D) return 1;
     if(gap > 2*D) return 2;
     return 3;
   }
-  effectiveLines(){
-    return Math.min(this.powerLevel, this.distanceAllowedLines());
-  }
+  effectiveLines(){ return Math.min(this.powerLevel, this.distanceAllowedLines()); }
 
   update(dt){
     for(const g of this.groups) g.update(dt);
@@ -136,21 +135,20 @@ class Game {
     for(const m of this.missiles) m.update(dt);
     this.missiles = this.missiles.filter(m=>!m.outOfBounds(this.width, this.height));
     for(const it of this.items) it.update(dt);
-
     this.resolveCollisions(dt);
     this.wave.update(dt);
   }
 
   resolveCollisions(dt){
     const A = this.playerA, B=this.playerB;
-    // Player vs missiles
+    // missiles -> players
     for(const m of this.missiles){
-      const r = m.radius + A.radius;
-      if(A.pos.clone().sub(m.pos).len() <= r){ A.hit(); }
+      const r1 = m.radius + A.radius;
+      if(A.pos.clone().sub(m.pos).len() <= r1){ A.hit(); }
       const r2 = m.radius + B.radius;
       if(B.pos.clone().sub(m.pos).len() <= r2){ B.hit(); }
     }
-    // Player vs enemies
+    // enemies -> players
     for(const g of this.groups){
       for(const e of g.members){
         if(!e.isAlive()) continue;
@@ -168,28 +166,31 @@ class Game {
       if(B.pos.clone().sub(e.pos).len() <= rB){ B.hit(); }
     }
 
-    // Items pickup (players or lines)
+    // items pickup (players or lines)
     const eff = this.effectiveLines();
-    const {lineA, lineB, offsets} = this.getLineGeometry(eff);
+    const geo = this.getLineGeometry(eff);
+    const lineA = geo.lineA, lineB = geo.lineB, offsets = geo.offsets;
     const lineActive = eff>0;
-    this.items = this.items.filter(it=>{
-      const rA = it.radius + A.radius;
-      if(A.pos.clone().sub(it.pos).len() <= rA){ this.applyItem(it.kind); return false; }
-      const rB = it.radius + B.radius;
-      if(B.pos.clone().sub(it.pos).len() <= rB){ this.applyItem(it.kind); return false; }
+    const self = this;
+    this.items = this.items.filter(function(it){
+      const rA2 = it.radius + A.radius;
+      if(A.pos.clone().sub(it.pos).len() <= rA2){ self.applyItem(it.kind); return false; }
+      const rB2 = it.radius + B.radius;
+      if(B.pos.clone().sub(it.pos).len() <= rB2){ self.applyItem(it.kind); return false; }
       if(lineActive){
-        for(const off of offsets){
+        for(var i=0;i<offsets.length;i++){
+          const off = offsets[i];
           const a = lineA.clone().add(off);
           const b = lineB.clone().add(off);
           if(segmentPointDistance(a,b,it.pos) <= it.radius + 6){
-            this.applyItem(it.kind); return false;
+            self.applyItem(it.kind); return false;
           }
         }
       }
       return true;
     });
 
-    // Line vs enemies (damage tick)
+    // line vs enemies (damage tick)
     const t = now();
     const damageInterval = 0.1;
     if(eff>0){
@@ -197,8 +198,9 @@ class Game {
         for(const e of g.members){
           if(!e.isAlive()) continue;
           if(t < e.lastLineDamageTick + damageInterval) continue;
-          let hitLines = 0;
-          for(const off of offsets){
+          var hitLines = 0;
+          for(var i=0;i<offsets.length;i++){
+            const off = offsets[i];
             const a = lineA.clone().add(off);
             const b = lineB.clone().add(off);
             const d = segmentPointDistance(a,b,e.pos);
@@ -213,15 +215,16 @@ class Game {
       for(const e of this.enemies){
         if(!e.isAlive()) continue;
         if(t < e.lastLineDamageTick + damageInterval) continue;
-        let hitLines = 0;
-        for(const off of offsets){
-          const a = lineA.clone().add(off);
-          const b = lineB.clone().add(off);
-          const d = segmentPointDistance(a,b,e.pos);
-          if(d <= e.radius) hitLines++;
+        var hitLines2 = 0;
+        for(var j=0;j<offsets.length;j++){
+          const off2 = offsets[j];
+          const a2 = lineA.clone().add(off2);
+          const b2 = lineB.clone().add(off2);
+          const d2 = segmentPointDistance(a2,b2,e.pos);
+          if(d2 <= e.radius) hitLines2++;
         }
-        if(hitLines>0){
-          e.damage(hitLines);
+        if(hitLines2>0){
+          e.damage(hitLines2);
           e.lastLineDamageTick = t;
         }
       }
@@ -245,9 +248,9 @@ class Game {
     const dir = B.clone().sub(A);
     const len = dir.len();
     const offsets = [];
-    if(len < 1e-3) return {lineA, lineB, offsets:[]};
-    const n = dir.clone().norm().perp(); // unit perpendicular
-    const spacing = 10; // px between lines
+    if(len < 1e-3) return {lineA:lineA, lineB:lineB, offsets:[]};
+    const n = dir.clone().norm().perp();
+    const spacing = 10;
     if(effLines===1){
       offsets.push(new Vec2(0,0));
     }else if(effLines===2){
@@ -258,7 +261,7 @@ class Game {
       offsets.push(new Vec2(0,0));
       offsets.push(n.clone().mul(+spacing));
     }
-    return { lineA, lineB, offsets };
+    return { lineA:lineA, lineB:lineB, offsets:offsets };
   }
 
   draw(){
@@ -278,12 +281,13 @@ class Game {
     }
     ctx.restore();
 
-    // Items under
+    // Items
     for(const it of this.items) it.draw(ctx);
 
     // Attack line
     const eff = this.effectiveLines();
-    const {lineA, lineB, offsets} = this.getLineGeometry(eff);
+    const geo = this.getLineGeometry(eff);
+    const lineA = geo.lineA, lineB = geo.lineB, offsets = geo.offsets;
     const distAllowed = this.distanceAllowedLines();
     ctx.save();
     if(distAllowed===0){
@@ -298,7 +302,8 @@ class Game {
     } else {
       ctx.strokeStyle = COL.line;
       ctx.lineWidth = 3;
-      for(const off of offsets){
+      for(var i=0;i<offsets.length;i++){
+        const off = offsets[i];
         ctx.beginPath();
         ctx.moveTo(lineA.x+off.x, lineA.y+off.y);
         ctx.lineTo(lineB.x+off.x, lineB.y+off.y);
@@ -318,11 +323,11 @@ class Game {
     // Missiles
     for(const m of this.missiles) m.draw(ctx);
 
-    // Wave overlays (telegraph / countdown / banner)
+    // Wave overlays
     this.wave.draw(ctx);
   }
 
-  loop = ()=>{
+  loop(){
     if(!this.running) return;
     const ts = performance.now();
     const dt = Math.min(0.033, (ts - this.lastTS)/1000);
