@@ -1,7 +1,9 @@
 // ===============================
 // Entities: players, enemies, missiles, items, groups
-// - Fix: 2-column formation teleport -> remove double lateral offset after trail sampling
-// - Add: enemy damage red flash via hitFlashUntil timer
+// - 일반/공격형 몹 이동속도: 기존 대비 1/2로 감소 (지시사항 1)
+// - 공격형몹(슈터) 발사 규칙: 5초마다, 발사 1초 전 깜빡임, 랜덤 방향 미사일 1발 (지시사항 2)
+// - 아이템 드랍률 상향: 일반(체력15%/파워15%), 공격(체력20%/파워20%) (지시사항 4)
+// - (기존 유지) 2열 순간이동 버그 수정, 데미지 붉은 플래시 효과
 // ===============================
 
 class PlayerCircle {
@@ -10,10 +12,11 @@ class PlayerCircle {
     this.pos = new Vec2(x,y);
     this.radius = radius;
     this.color = COL.player;
-    this.invulUntil = 0;     // 무적 시간(초)
+    this.invulUntil = 0;     // 무적 종료 시각(초)
     this.shakeUntil = 0;     // 피격 흔들림 종료 시각
     this.shakeMag = 0;       // 흔들림 세기(px)
   }
+  // 플레이어 피격 처리(무적시간 체크 포함)
   hit(){
     const t = now();
     if(t < this.invulUntil) return false;
@@ -23,7 +26,7 @@ class PlayerCircle {
   }
   draw(ctx){
     ctx.save();
-    // 피격 흔들림 오프셋
+    // 피격 흔들림 랜덤 오프셋
     let ox = 0, oy = 0;
     if(now() < this.shakeUntil){
       ox = (Math.random()*2-1) * this.shakeMag;
@@ -48,21 +51,23 @@ class Enemy {
     this.maxHp = hp;
     this.hp = hp;
 
-    // 색상(타입별)
+    // 타입별 기본 색상
     this.baseColor = (type===ENEMY_TYPE.NORMAL)?COL.enemyNormal:
                      (type===ENEMY_TYPE.SHOOTER)?COL.enemyShooter:COL.boss;
 
-    // 발사 텔레그래프(슈터용)
-    this.blinkUntil = 0;
-    this.nextShotAt = now() + 3;
-    this.shotBlinkTime = 1;
+    // ── 슈터(공격형몹) 발사 관련(지시사항 2)
+    //   - 5초마다 발사
+    //   - 발사 1초 전부터 깜빡임
+    this.blinkUntil = 0;             // 깜빡임 종료 시각
+    this.shotBlinkTime = 1;          // 발사 전 텔레그래프 시간
+    this.nextShotAt = now() + 5;     // 최초 발사 시각(5초 후)
 
-    // 보스 이동/정지 사이클
+    // ── 보스 이동/정지 사이클
     this.bossMoveTimer = 3;
     this.bossStopTimer = 0;
     this.heading = rand(0, TAU);
 
-    // 그룹에서 세팅되는 값
+    // 그룹에서 세팅되는 이동속도/슬롯 정보
     this.speed = 0;
     this.column = 0;      // 2열일 때 0/1
     this.slotInCol = 0;   // 선두 뒤 몇 번째
@@ -70,18 +75,19 @@ class Enemy {
     // 라인 데미지 틱 제어
     this.lastLineDamageTick = 0;
 
-    // ▼ 데미지 시 붉은 플래시
+    // ▼ 데미지 시 붉은 플래시(시각 피드백)
     this.hitFlashUntil = 0;       // now()보다 크면 플래시 활성
     this.hitFlashColor = "#ff5252";
   }
 
   isAlive(){ return this.hp > 0; }
 
+  // 적이 라인에 맞아 데미지를 받을 때 호출
   damage(n){
     if(!this.isAlive()) return;
     this.hp -= n;
 
-    // 맞을 때 짧게 붉게 반짝
+    // 맞을 때 짧게 붉게 반짝(시각 피드백)
     this.hitFlashUntil = now() + 0.15;
 
     if(this.hp <= 0){
@@ -89,40 +95,45 @@ class Enemy {
     }
   }
 
+  // 사망 시 아이템 드랍(지시사항 4: 드랍률 상향)
   onDeath(){
     const g = this.game;
     if(this.type === ENEMY_TYPE.NORMAL){
-      if(Math.random()<0.01) g.dropItem('heart', this.pos.clone());
-      if(Math.random()<0.005) g.dropItem('power', this.pos.clone());
+      // 일반몹: 체력 15%, 파워 15%
+      if(Math.random()<0.15) g.dropItem('heart', this.pos.clone());
+      if(Math.random()<0.15) g.dropItem('power', this.pos.clone());
     } else if(this.type === ENEMY_TYPE.SHOOTER){
-      if(Math.random()<0.10) g.dropItem('heart', this.pos.clone());
-      if(Math.random()<0.10) g.dropItem('power', this.pos.clone());
+      // 공격형몹: 체력 20%, 파워 20%
+      if(Math.random()<0.20) g.dropItem('heart', this.pos.clone());
+      if(Math.random()<0.20) g.dropItem('power', this.pos.clone());
     } else if(this.type === ENEMY_TYPE.BOSS){
-      // 프로토타입: 없음
+      // 프로토타입: 별도 드랍 없음
     }
   }
 
+  // 개체별(슈터/보스) 로직 업데이트
   update(dt){
     if(!this.isAlive()) return;
 
-    // 슈터: 점멸 → 발사
     if(this.type === ENEMY_TYPE.SHOOTER){
+      // ── 슈터: 5초마다 1발 발사, 1초 전부터 깜빡임
       const t = now();
       if(t >= this.nextShotAt - this.shotBlinkTime && t < this.nextShotAt){
-        this.blinkUntil = this.nextShotAt;
+        this.blinkUntil = this.nextShotAt;   // 깜빡임 켜기
       }
       if(t >= this.nextShotAt){
-        for(let i=0;i<2;i++){
-          const ang = rand(0, TAU);
-          const v = Vec2.fromAngle(ang, this.game.missileSpeed);
-          this.game.spawnMissile(this.pos.clone(), v);
-        }
-        this.nextShotAt = t + 3;
+        // 랜덤 방향 미사일 1발
+        const ang = rand(0, TAU);
+        const v = Vec2.fromAngle(ang, this.game.missileSpeed);
+        this.game.spawnMissile(this.pos.clone(), v);
+
+        // 다음 발사 예약(5초 후)
+        this.nextShotAt = t + 5;
         this.blinkUntil = 0;
       }
     }
-    // 보스: 3초 이동 → 1초 정지→ 6발
     else if(this.type === ENEMY_TYPE.BOSS){
+      // 보스: 3초 이동 → 1초 정지 → 6발 동시 발사
       if(this.bossMoveTimer > 0){
         const step = Math.min(this.bossMoveTimer, dt);
         this.pos.add(Vec2.fromAngle(this.heading, this.game.enemySpeed * step));
@@ -146,7 +157,7 @@ class Enemy {
     }
   }
 
-  // 화면 벽에 부딪힐 때 반사
+  // 화면 벽 반사(보스 이동용)
   bounceWalls(){
     const g = this.game, r=this.radius;
     if(this.pos.x < r){ this.pos.x=r; this.heading = Math.PI - this.heading + rand(-0.5,0.5); }
@@ -162,10 +173,10 @@ class Enemy {
     ctx.save();
     const t = now();
 
-    // 발사 예고 점멸(슈터)
+    // 슈터 발사 예고 점멸
     const telegraphBlink = (t < this.blinkUntil) ? (0.5 + 0.5*Math.sin(t*20)) : 0;
 
-    // ▼ 데미지 플래시 우선
+    // ▼ 데미지 플래시 우선 적용
     const flashing = (t < this.hitFlashUntil);
     if(flashing){
       ctx.shadowColor = this.hitFlashColor;
@@ -195,14 +206,17 @@ class Enemy {
 
 // -----------------------------------------------
 // 선두 추종(지렁이) 포메이션 + trail 기반 연속 이동
-// ※ Fix: 2열에서 trail 샘플 후 '추가 측면 오프셋'을 다시 더하지 않음
+// ※ 2열 순간이동 버그: trail 샘플 좌표에 '추가 측면 오프셋'을 다시 더하지 않음
+// ※ 일반/공격형 속도 1/2 적용(지시사항 1)
 // -----------------------------------------------
 class EnemyGroup {
   constructor(game, formation, count, typeConfigFn){
     this.game = game;
     this.columns = formation;         // 1 또는 2
     this.members = [];                // Enemy[]
-    this.speed = game.enemySpeed;
+
+    // ⬇️ 이동 속도: 기존 game.enemySpeed 의 절반(2배 느리게)
+    this.speed = game.enemySpeed * 0.5;
 
     // 거리 파라미터
     this.spacing = game.enemyRadius * 2.3;     // 앞뒤 간격(슬롯 당)
@@ -270,7 +284,6 @@ class EnemyGroup {
     for(const e of this.members) if(e.column===c) maxSlot = Math.max(maxSlot, e.slotInCol);
     const need = (maxSlot + 1) * this.spacing + 200;
 
-    // 오래된 포인트 제거 (앞쪽부터)
     while(pts.length > 2 && (tr.total - lens[1]) > need){
       pts.shift();
       const off = lens[1];
@@ -299,7 +312,7 @@ class EnemyGroup {
     return new Vec2( lerp(a.x,b.x,t), lerp(a.y,b.y,t) );
   }
 
-  // ▼ 핵심: trail 샘플 좌표를 그대로 사용(2열에서도 '추가 측면 오프셋'을 더하지 않음)
+  // ★ 핵심: trail 샘플 좌표를 그대로 사용(2열에서도 '추가 측면 오프셋'을 더하지 않음)
   _applySlotsFromTrail(){
     const cols = this.columns || 1;
 
@@ -314,12 +327,9 @@ class EnemyGroup {
         if(e.column!==c) continue;
 
         const dist = (e.slotInCol + 1) * this.spacing;
-
         // 선두 trail에서 '뒤 dist' 지점을 샘플링
         let p = this._sampleTrail(c, dist);
 
-        // ★ 여기서 'lat(측면 오프셋)'을 추가로 더하면 2열이 튀는 문제가 생김 → 제거
-        // (이미 setPositions에서 컬럼별 선두 자체가 좌우로 분리되어 독립 trail을 가짐)
         e.pos = p;
         e.heading = head.dir;
         e.speed = this.speed;
@@ -361,6 +371,7 @@ class EnemyGroup {
     }
   }
 
+  // 남아있는(살아있는) 구성원 수
   aliveCount(){ return this.members.filter(m=>m.isAlive()).length; }
 
   draw(ctx){
@@ -368,6 +379,8 @@ class EnemyGroup {
   }
 }
 
+// -----------------------------------------------
+// 투사체(적 미사일)
 // -----------------------------------------------
 class Missile {
   constructor(pos, vel, radius=5){
@@ -390,6 +403,8 @@ class Missile {
   }
 }
 
+// -----------------------------------------------
+// 드랍 아이템(하트/파워)
 // -----------------------------------------------
 class Item {
   constructor(kind, pos){
