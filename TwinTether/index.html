@@ -43,7 +43,7 @@
   <script src="src/game.js"></script>
 
   <!-- 시작 버튼이 '항상' 동작하도록 보장하는 최후방 안전장치 -->
-  <script>
+<script>
   // 전역 안전 시작 함수(버튼 onclick으로 직접 호출)
   function _startGame(){
     try{
@@ -53,18 +53,30 @@
       if (overlay) overlay.classList.add('hidden');
       if (canvas)  canvas.style.pointerEvents = 'auto';
 
-      // Game 인스턴스 없으면 생성
-      if (!window.game) {
-        var cv = document.getElementById('game');
-        window.game = new Game(cv);
+      // Game 생성자 존재 확인
+      if (!window.Game || typeof window.Game !== 'function') {
+        throw new Error('Game 생성자를 찾을 수 없습니다 (스크립트 로드 순서/경로 확인).');
       }
-      // 시작
-      window.game.start();
+
+      // ❗ 항상 새 인스턴스로 초기화 (기존 window.game에 이상한 객체가 남아있을 수 있음)
+      var cv = document.getElementById('game');
+      window.game = new window.Game(cv);
+
+      // ❗ start가 없을 때 _startImpl 폴백 호출
+      if (window.game && typeof window.game.start === 'function') {
+        window.game.start();
+      } else if (window.game && typeof window.game._startImpl === 'function') {
+        window.game._startImpl();
+      } else {
+        // 디버깅 정보를 함께 표시
+        var t1 = typeof window.game;
+        var keys = window.game ? Object.keys(window.game).join(',') : 'null';
+        throw new Error('Game.start 가 없습니다. type=' + t1 + ', keys=[' + keys + ']');
+      }
     }catch(err){
-      // 모바일에서 콘솔을 못 볼 때를 대비한 표시
       alert('초기화 오류: ' + (err && err.message ? err.message : err));
     }
   }
-  </script>
+</script>
 </body>
 </html>
