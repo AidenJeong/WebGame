@@ -167,17 +167,22 @@ class Game {
   }
 
   
-// ── 충돌/피해 판정
+// ─────────────────────────────────────────────
+// 충돌/피해 판정
+// - 아이템: 플레이어 원에 닿을 때만 획득 (라인으로는 줍지 않음)
+// - 라인→적: "첫 접촉 시" 현재 효과 라인 수(eff) 만큼 1회 대미지 부여
+//             (예: eff=3이면 닿는 순간 3, 이후 2초 무적은 Enemy.invulUntil이 담당)
+// ─────────────────────────────────────────────
 resolveCollisions(dt){
-  const A = this.playerA, B=this.playerB;
+  const A = this.playerA, B = this.playerB;
 
-  // 미사일 → 플레이어
+  // ---- 미사일 → 플레이어
   for(const m of this.missiles){
     const r1 = m.radius + A.radius; if(A.pos.clone().sub(m.pos).len() <= r1){ A.hit(); }
     const r2 = m.radius + B.radius; if(B.pos.clone().sub(m.pos).len() <= r2){ B.hit(); }
   }
 
-  // 적 → 플레이어
+  // ---- 적 → 플레이어
   for(const g of this.groups){
     for(const e of g.members){
       if(!e.isAlive()) continue;
@@ -191,51 +196,64 @@ resolveCollisions(dt){
     const rB = e.radius + B.radius; if(B.pos.clone().sub(e.pos).len() <= rB){ B.hit(); }
   }
 
-  // 아이템 획득(플레이어 or 라인)
-  const eff = this.effectiveLines();
-  const {lineA, lineB, offsets} = this.getLineGeometry(eff);
-  const lineActive = eff>0;
+  // ---- 아이템 획득: 플레이어 원에 닿을 때만 (라인 줍기 제거)
   this.items = this.items.filter(it=>{
     const rA = it.radius + A.radius; if(A.pos.clone().sub(it.pos).len() <= rA){ this.applyItem(it.kind); return false; }
     const rB = it.radius + B.radius; if(B.pos.clone().sub(it.pos).len() <= rB){ this.applyItem(it.kind); return false; }
-    if(lineActive){
-      for(const off of offsets){
-        const a = lineA.clone().add(off), b = lineB.clone().add(off);
-        if(segmentPointDistance(a,b,it.pos) <= it.radius + 6){ this.applyItem(it.kind); return false; }
-      }
-    }
     return true;
   });
 
-  // ── 라인 → 적 피해 (적이 자체 i-frame으로 2초 무적 관리)
-  if(eff>0){
+  // ---- 라인 → 적 대미지
+  //  - eff: 현재 적용 가능한 라인 수(파워/거리 제한 반영)
+  //  - 원칙: "한 라인이라도 닿으면" 그 즉시 eff만큼 1회 대미지(e.damage(eff))
+  const eff = this.effectiveLines();
+  if(eff > 0){
+    const geo = this.getLineGeometry(eff);
+    const lineA = geo.lineA, lineB = geo.lineB, offsets = geo.offsets;
+
     // 그룹 적
     for(const g of this.groups){
       for(const e of g.members){
         if(!e.isAlive()) continue;
-        let hitLines = 0;
+
+        // (최적화) 이미 무적이면 이번 프레임은 스킵해도 됨. (damage 내부에서도 다시 검사함)
+        if(now() < e.invulUntil) continue;
+
+        // 한 라인이라도 닿는지 체크
+        let contacted = false;
         for(const off of offsets){
-          const a = lineA.clone().add(off), b = lineB.clone().add(off);
-          const d = segmentPointDistance(a,b,e.pos);
-          if(d <= e.radius) hitLines++;
+          const a = lineA.clone().add(off);
+          const b = lineB.clone().add(off);
+          const d = segmentPointDistance(a, b, e.pos);
+          if(d <= e.radius){ contacted = true; break; }
         }
-        if(hitLines>0){ e.damage(hitLines); } // 내부에서 invulUntil로 필터링
+        if(contacted){
+          // 첫 접촉 시 점수처럼 누적 대미지를 1회에 적용 (eff가 2/3이면 그 값만큼)
+          e.damage(eff);
+        }
       }
     }
+
     // 보스 등 단일 적
     for(const e of this.enemies){
       if(!e.isAlive()) continue;
-      let hitLines = 0;
+      if(now() < e.invulUntil) continue;
+
+      let contacted = false;
       for(const off of offsets){
-        const a = lineA.clone().add(off), b = lineB.clone().add(off);
-        const d = segmentPointDistance(a,b,e.pos);
-        if(d <= e.radius) hitLines++;
+        const a = lineA.clone().add(off);
+        const b = lineB.clone().add(off);
+        const d = segmentPointDistance(a, b, e.pos);
+        if(d <= e.radius){ contacted = true; break; }
       }
-      if(hitLines>0){ e.damage(hitLines); }
+      if(contacted){
+        e.damage(eff);
+      }
     }
   }
 }
 
+  
   applyItem(kind){
     if(kind==='heart'){
       this.hearts = Math.min(this.heartsMax, this.hearts+1);
