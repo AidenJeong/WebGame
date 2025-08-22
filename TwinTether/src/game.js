@@ -166,97 +166,75 @@ class Game {
     this.wave.update(dt);
   }
 
-  resolveCollisions(dt){
-    const A = this.playerA, B=this.playerB;
-    // missiles -> players
-    for(const m of this.missiles){
-      const r1 = m.radius + A.radius;
-      if(A.pos.clone().sub(m.pos).len() <= r1){ A.hit(); }
-      const r2 = m.radius + B.radius;
-      if(B.pos.clone().sub(m.pos).len() <= r2){ B.hit(); }
+  
+// ── 충돌/피해 판정
+resolveCollisions(dt){
+  const A = this.playerA, B=this.playerB;
+
+  // 미사일 → 플레이어
+  for(const m of this.missiles){
+    const r1 = m.radius + A.radius; if(A.pos.clone().sub(m.pos).len() <= r1){ A.hit(); }
+    const r2 = m.radius + B.radius; if(B.pos.clone().sub(m.pos).len() <= r2){ B.hit(); }
+  }
+
+  // 적 → 플레이어
+  for(const g of this.groups){
+    for(const e of g.members){
+      if(!e.isAlive()) continue;
+      const rA = e.radius + A.radius; if(A.pos.clone().sub(e.pos).len() <= rA){ A.hit(); }
+      const rB = e.radius + B.radius; if(B.pos.clone().sub(e.pos).len() <= rB){ B.hit(); }
     }
-    // enemies -> players
+  }
+  for(const e of this.enemies){
+    if(!e.isAlive()) continue;
+    const rA = e.radius + A.radius; if(A.pos.clone().sub(e.pos).len() <= rA){ A.hit(); }
+    const rB = e.radius + B.radius; if(B.pos.clone().sub(e.pos).len() <= rB){ B.hit(); }
+  }
+
+  // 아이템 획득(플레이어 or 라인)
+  const eff = this.effectiveLines();
+  const {lineA, lineB, offsets} = this.getLineGeometry(eff);
+  const lineActive = eff>0;
+  this.items = this.items.filter(it=>{
+    const rA = it.radius + A.radius; if(A.pos.clone().sub(it.pos).len() <= rA){ this.applyItem(it.kind); return false; }
+    const rB = it.radius + B.radius; if(B.pos.clone().sub(it.pos).len() <= rB){ this.applyItem(it.kind); return false; }
+    if(lineActive){
+      for(const off of offsets){
+        const a = lineA.clone().add(off), b = lineB.clone().add(off);
+        if(segmentPointDistance(a,b,it.pos) <= it.radius + 6){ this.applyItem(it.kind); return false; }
+      }
+    }
+    return true;
+  });
+
+  // ── 라인 → 적 피해 (적이 자체 i-frame으로 2초 무적 관리)
+  if(eff>0){
+    // 그룹 적
     for(const g of this.groups){
       for(const e of g.members){
         if(!e.isAlive()) continue;
-        const rA = e.radius + A.radius;
-        if(A.pos.clone().sub(e.pos).len() <= rA){ A.hit(); }
-        const rB = e.radius + B.radius;
-        if(B.pos.clone().sub(e.pos).len() <= rB){ B.hit(); }
+        let hitLines = 0;
+        for(const off of offsets){
+          const a = lineA.clone().add(off), b = lineB.clone().add(off);
+          const d = segmentPointDistance(a,b,e.pos);
+          if(d <= e.radius) hitLines++;
+        }
+        if(hitLines>0){ e.damage(hitLines); } // 내부에서 invulUntil로 필터링
       }
     }
+    // 보스 등 단일 적
     for(const e of this.enemies){
       if(!e.isAlive()) continue;
-      const rA = e.radius + A.radius;
-      if(A.pos.clone().sub(e.pos).len() <= rA){ A.hit(); }
-      const rB = e.radius + B.radius;
-      if(B.pos.clone().sub(e.pos).len() <= rB){ B.hit(); }
-    }
-
-    // items pickup (players or lines)
-    const eff = this.effectiveLines();
-    const geo = this.getLineGeometry(eff);
-    const lineA = geo.lineA, lineB = geo.lineB, offsets = geo.offsets;
-    const lineActive = eff>0;
-    const self = this;
-    this.items = this.items.filter(function(it){
-      const rA2 = it.radius + A.radius;
-      if(A.pos.clone().sub(it.pos).len() <= rA2){ self.applyItem(it.kind); return false; }
-      const rB2 = it.radius + B.radius;
-      if(B.pos.clone().sub(it.pos).len() <= rB2){ self.applyItem(it.kind); return false; }
-      if(lineActive){
-        for(var i=0;i<offsets.length;i++){
-          const off = offsets[i];
-          const a = lineA.clone().add(off);
-          const b = lineB.clone().add(off);
-          if(segmentPointDistance(a,b,it.pos) <= it.radius + 6){
-            self.applyItem(it.kind); return false;
-          }
-        }
+      let hitLines = 0;
+      for(const off of offsets){
+        const a = lineA.clone().add(off), b = lineB.clone().add(off);
+        const d = segmentPointDistance(a,b,e.pos);
+        if(d <= e.radius) hitLines++;
       }
-      return true;
-    });
-
-    // line vs enemies (damage tick)
-    const t = now();
-    const damageInterval = 0.1;
-    if(eff>0){
-      for(const g of this.groups){
-        for(const e of g.members){
-          if(!e.isAlive()) continue;
-          if(t < e.lastLineDamageTick + damageInterval) continue;
-          var hitLines = 0;
-          for(var i=0;i<offsets.length;i++){
-            const off = offsets[i];
-            const a = lineA.clone().add(off);
-            const b = lineB.clone().add(off);
-            const d = segmentPointDistance(a,b,e.pos);
-            if(d <= e.radius) hitLines++;
-          }
-          if(hitLines>0){
-            e.damage(hitLines);
-            e.lastLineDamageTick = t;
-          }
-        }
-      }
-      for(const e of this.enemies){
-        if(!e.isAlive()) continue;
-        if(t < e.lastLineDamageTick + damageInterval) continue;
-        var hitLines2 = 0;
-        for(var j=0;j<offsets.length;j++){
-          const off2 = offsets[j];
-          const a2 = lineA.clone().add(off2);
-          const b2 = lineB.clone().add(off2);
-          const d2 = segmentPointDistance(a2,b2,e.pos);
-          if(d2 <= e.radius) hitLines2++;
-        }
-        if(hitLines2>0){
-          e.damage(hitLines2);
-          e.lastLineDamageTick = t;
-        }
-      }
+      if(hitLines>0){ e.damage(hitLines); }
     }
   }
+}
 
   applyItem(kind){
     if(kind==='heart'){
