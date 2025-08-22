@@ -130,17 +130,31 @@ class Game {
   spawnMissile(pos, vel){ this.missiles.push(new Missile(pos, vel, 5)); }
   dropItem(kind, pos){ this.items.push(new Item(kind, pos)); }
 
+  // ─────────────────────────────────────────────
+  // 라인 허용 개수 계산 (지시사항 3)
+  // - 기준: 두 원 중심 사이 거리에서 '겹침 1지름'을 제외한 빈 공간(gap)을 원의 지름 D 단위로 환산
+  // - 규칙 변경:
+  //   gap ≤ 4D  → 3줄
+  //   4D < gap ≤ 6D → 2줄
+  //   6D < gap ≤ 8D → 1줄
+  //   gap > 8D → 공격불가(점선)
+  // ─────────────────────────────────────────────
   distanceAllowedLines(){
     const A = this.playerA.pos, B=this.playerB.pos;
     const centerDist = A.clone().sub(B).len();
-    const D = this.playerDiameter;
-    const gap = Math.max(0, centerDist - D);
-    if(gap >= 6*D) return 0;
-    if(gap > 4*D) return 1;
-    if(gap > 2*D) return 2;
+    const D = this.playerDiameter;                 // 원의 지름
+    const gap = Math.max(0, centerDist - D);       // 두 원의 테두리 간 빈 거리
+
+    if(gap > 8*D) return 0;    // 너무 멀면 점선(공격 불가)
+    if(gap > 6*D) return 1;
+    if(gap > 4*D) return 2;
     return 3;
   }
-  effectiveLines(){ return Math.min(this.powerLevel, this.distanceAllowedLines()); }
+
+  // (유지) 파워업으로 허용된 최대 줄 수와 거리 제한 중 작은 쪽을 실제 적용
+  effectiveLines(){
+    return Math.min(this.powerLevel, this.distanceAllowedLines());
+  }
 
   update(dt){
     for(const g of this.groups) g.update(dt);
