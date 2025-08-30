@@ -73,7 +73,7 @@
 
   <script>
     // ✅ Apps Script 웹앱 URL (배포 후 나온 URL로 교체)
-    const API_BASE = 'https://script.google.com/macros/s/AKfycbyZ3c-OXmRVKc2Lmzx3-WKCRB46eZzSFVMwQzEsNkWm6H38VWljGR2ch3M58vEz8zN6Ng/exec';
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbwBJSrtyUo2z5qwmKAQDyJcFvHqYhVKJVITztWqfxKoH-ujfJHzG7gkMXQ5N00HHbA8iQ/exec';
 
     // ------- 유틸(토스트/로딩/날짜 포맷) -------
     const $ = (sel) => document.querySelector(sel);
@@ -147,11 +147,10 @@
     /** 소모임 → 스프레드시트 동기화 (POST: action=sync) */
     async function syncMembers() {
       const res = await fetch(API_BASE, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        // Apps Script 웹앱은 공개 배포 시 CORS로 응답을 읽을 수 있습니다.
-        // 문제가 있으면 JSONP/HtmlService로 우회하거나, 응답 포맷을 단순화하세요.
-        body: JSON.stringify({ action: 'sync' })
+        const res = await fetch(API_BASE + '?action=sync'); // ← GET
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || 'Sync error');
+        return json.members || [];
       });
       if (!res.ok) throw new Error(`POST failed: ${res.status}`);
       const json = await res.json();
@@ -181,7 +180,7 @@
         showToast('업데이트 완료');
       } catch (err) {
         console.error(err);
-        showToast('업데이트 실패');
+        showToast('업데이트 실패' + (err.message || err));
       } finally {
         showLoader(false);
       }
