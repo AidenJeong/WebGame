@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>출석부(회원목록)</title>
+  <style>
+    /* --- 가벼운 스타일: 모바일/데스크탑 공통 --- */
+    :root { --maxw: 980px; --gap: 12px; --radius: 14px; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif; background: #0b0d12; color: #e9eef7; }
+    header { max-width: var(--maxw); margin: 24px auto 0; padding: 0 16px; }
+    h1 { font-size: 20px; margin: 0 0 8px; }
+    .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    button {
+      appearance: none; border: 0; border-radius: var(--radius);
+      padding: 12px 16px; font-size: 14px; font-weight: 700; cursor: pointer;
+      background: #5b8cff; color: #0b0d12; box-shadow: 0 6px 18px rgba(91,140,255,0.3);
+      transition: transform .05s ease;
+    }
+    button:active { transform: translateY(1px); }
+    .meta { opacity: .85; font-size: 13px; }
+
+    main { max-width: var(--maxw); margin: 16px auto 40px; padding: 0 16px; }
+    .grid { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+    .card {
+      background: #111726; border-radius: var(--radius); padding: 14px; display: flex; gap: 12px; align-items: center;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    }
+    .avatar {
+      width: 64px; height: 64px; flex: 0 0 auto; border-radius: 50%;
+      background: #0b0d12; overflow: hidden; border: 1px solid #25304a;
+      display: grid; place-items: center;
+    }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .info { min-width: 0; }
+    .nick { font-weight: 800; font-size: 15px; margin: 0; }
+    .date { margin: 4px 0 0; font-size: 13px; opacity: .8; }
+    .chip { display: inline-block; font-size: 12px; background: #24345a; color: #a0b7ff; padding: 4px 8px; border-radius: 999px; margin-left: 8px; }
+
+    .toast {
+      position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
+      background: #101522; color: #cfe0ff; padding: 10px 14px; border-radius: 10px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.3); font-size: 14px; display: none;
+    }
+    .loader {
+      display: none; position: fixed; inset: 0; background: rgba(8,10,16,0.55);
+      align-items: center; justify-content: center; z-index: 99;
+    }
+    .spinner {
+      width: 46px; height: 46px; border: 4px solid #223055; border-top-color: #5b8cff; border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>출석부(회원목록) <span id="count" class="chip">0명</span></h1>
+    <div class="bar">
+      <button id="btnSync">회원정보 업데이트 버튼</button>
+      <span class="meta">소모임 → 스프레드시트 동기화 후 최신 목록을 보여줍니다.</span>
+    </div>
+  </header>
+
+  <main>
+    <div id="grid" class="grid"></div>
+  </main>
+
+  <!-- 로딩/토스트 -->
+  <div id="loader" class="loader"><div class="spinner"></div></div>
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // ✅ Apps Script 웹앱 URL (배포 후 나온 URL로 교체)
+    const API_BASE = 'PUT_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+
+    // ------- 유틸(토스트/로딩/날짜 포맷) -------
+    const $ = (sel) => document.querySelector(sel);
+    function showToast(msg) {
+      const t = $('#toast');
+      t.textContent = msg;
+      t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, 1800);
+    }
+    function showLoader(v) {
+      $('#loader').style.display = v ? 'flex' : 'none';
+    }
+    function fmtDate(iso) {
+      // 서버가 "YYYY-MM-DD"로 내려주므로, 한국 로케일로 보기 좋게 가공
+      if (!iso) return '-';
+      const d = new Date(iso);
+      if (isNaN(d)) return iso; // 혹시 포맷 다르면 원문 출력
+      return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    // ------- 렌더링 -------
+    /** 멤버 카드 렌더 */
+    function renderMembers(members) {
+      const grid = $('#grid');
+      grid.innerHTML = ''; // 초기화
+      $('#count').textContent = `${members.length}명`;
+
+      // 이미지 로드 실패 시 대체 이미지를 쓰기 위한 핸들러
+      const fallback = 'https://via.placeholder.com/128?text=User';
+
+      members.forEach(m => {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar';
+        const img = document.createElement('img');
+        img.loading = 'lazy';
+        img.src = m.image_url || fallback;
+        img.onerror = () => { img.src = fallback; };
+        avatar.appendChild(img);
+
+        const info = document.createElement('div');
+        info.className = 'info';
+        const nick = document.createElement('p');
+        nick.className = 'nick';
+        nick.textContent = m.nickname || '(닉네임 없음)';
+        const date = document.createElement('p');
+        date.className = 'date';
+        date.textContent = `가입일: ${fmtDate(m.joined_at)}`;
+
+        info.appendChild(nick);
+        info.appendChild(date);
+
+        card.appendChild(avatar);
+        card.appendChild(info);
+        grid.appendChild(card);
+      });
+    }
+
+    // ------- API 호출 -------
+    /** 현재 저장된 멤버 목록 가져오기 (GET) */
+    async function fetchMembers() {
+      const res = await fetch(API_BASE, { method: 'GET' });
+      if (!res.ok) throw new Error(`GET failed: ${res.status}`);
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || 'Unknown error');
+      return json.members || [];
+    }
+
+    /** 소모임 → 스프레드시트 동기화 (POST: action=sync) */
+    async function syncMembers() {
+      const res = await fetch(API_BASE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // Apps Script 웹앱은 공개 배포 시 CORS로 응답을 읽을 수 있습니다.
+        // 문제가 있으면 JSONP/HtmlService로 우회하거나, 응답 포맷을 단순화하세요.
+        body: JSON.stringify({ action: 'sync' })
+      });
+      if (!res.ok) throw new Error(`POST failed: ${res.status}`);
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || 'Sync error');
+      return json.members || [];
+    }
+
+    // ------- 초기화 -------
+    async function init() {
+      showLoader(true);
+      try {
+        const list = await fetchMembers();
+        renderMembers(list);
+      } catch (err) {
+        console.error(err);
+        showToast('초기 로드 실패');
+      } finally {
+        showLoader(false);
+      }
+    }
+
+    $('#btnSync').addEventListener('click', async () => {
+      showLoader(true);
+      try {
+        const list = await syncMembers();
+        renderMembers(list);
+        showToast('업데이트 완료');
+      } catch (err) {
+        console.error(err);
+        showToast('업데이트 실패');
+      } finally {
+        showLoader(false);
+      }
+    });
+
+    // 페이지 진입 시 1회 로드
+    init();
+  </script>
+</body>
+</html>
