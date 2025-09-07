@@ -1,193 +1,130 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>출석부(회원목록)</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>의적단 출석부</title>
+  <link rel="stylesheet" href="styles.css">
   <style>
-    /* --- 가벼운 스타일: 모바일/데스크탑 공통 --- */
-    :root { --maxw: 980px; --gap: 12px; --radius: 14px; }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif; background: #0b0d12; color: #e9eef7; }
-    header { max-width: var(--maxw); margin: 24px auto 0; padding: 0 16px; }
-    h1 { font-size: 20px; margin: 0 0 8px; }
-    .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    button {
-      appearance: none; border: 0; border-radius: var(--radius);
-      padding: 12px 16px; font-size: 14px; font-weight: 700; cursor: pointer;
-      background: #5b8cff; color: #0b0d12; box-shadow: 0 6px 18px rgba(91,140,255,0.3);
-      transition: transform .05s ease;
-    }
-    button:active { transform: translateY(1px); }
-    .meta { opacity: .85; font-size: 13px; }
+    :root{ --bg:#0b0b0f; --panel:#14141a; --soft:#1c1c25; --text:#eaeaf7; --muted:#a6a6bf; --accent:#7dd3fc; --danger:#ff6b6b; }
+    *{ box-sizing:border-box; }
+    body{ margin:0; background:var(--bg); color:var(--text); font:16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Noto Sans KR, Apple SD Gothic Neo, sans-serif; }
+    .wrap{ max-width:980px; margin:0 auto; padding:12px; padding-bottom:200px; }
+    header{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; }
+    .title{ flex:1; text-align:center; font-weight:700; font-size:18px; letter-spacing:0.2px; }
+    .btn{ border:none; background:var(--soft); color:var(--text); padding:10px 12px; border-radius:999px; font-weight:600; cursor:pointer; }
+    .btn:active{ transform:translateY(1px); }
+    .btn.small{ padding:6px 10px; font-size:14px; }
+    .btn.accent{ background:linear-gradient(135deg, #38bdf8, #818cf8); color:#0b0b0f; }
+    .btn.ghost{ background:transparent; border:1px solid var(--soft); }
 
-    main { max-width: var(--maxw); margin: 16px auto 40px; padding: 0 16px; }
-    .grid { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
-    .card {
-      background: #111726; border-radius: var(--radius); padding: 14px; display: flex; gap: 12px; align-items: center;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-    }
-    .avatar {
-      width: 64px; height: 64px; flex: 0 0 auto; border-radius: 50%;
-      background: #0b0d12; overflow: hidden; border: 1px solid #25304a;
-      display: grid; place-items: center;
-    }
-    .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .info { min-width: 0; }
-    .nick { font-weight: 800; font-size: 15px; margin: 0; }
-    .date { margin: 4px 0 0; font-size: 13px; opacity: .8; }
-    .chip { display: inline-block; font-size: 12px; background: #24345a; color: #a0b7ff; padding: 4px 8px; border-radius: 999px; margin-left: 8px; }
+    .tabs{ display:flex; gap:6px; background:var(--panel); padding:6px; border-radius:12px; position:sticky; top:0; z-index:5; }
+    .tab{ flex:1; text-align:center; padding:10px; border-radius:8px; background:var(--soft); color:var(--muted); font-weight:700; cursor:pointer; }
+    .tab.active{ color:#0b0b0f; background:linear-gradient(135deg, #38bdf8, #818cf8); }
 
-    .toast {
-      position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
-      background: #101522; color: #cfe0ff; padding: 10px 14px; border-radius: 10px;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.3); font-size: 14px; display: none;
-    }
-    .loader {
-      display: none; position: fixed; inset: 0; background: rgba(8,10,16,0.55);
-      align-items: center; justify-content: center; z-index: 99;
-    }
-    .spinner {
-      width: 46px; height: 46px; border: 4px solid #223055; border-top-color: #5b8cff; border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .view{ margin-top:12px; display:grid; gap:10px; }
+    .card{ background:var(--panel); border:1px solid var(--soft); border-radius:14px; padding:12px; }
+    .row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .muted{ color:var(--muted); font-size:12px; }
+    .pill{ background:var(--soft); padding:4px 8px; border-radius:999px; font-size:12px; }
+    .list{ display:grid; gap:8px; }
+
+    .member-cell{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px; border-radius:10px; background:var(--soft); cursor:pointer; }
+    .member-cell .meta{ font-size:12px; color:var(--muted); }
+
+    .section-title{ font-weight:800; font-size:14px; margin:8px 0 6px; color:var(--muted); }
+
+    /* Modal */
+    .modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.5); padding:16px; z-index:50; }
+    .modal.open{ display:flex; }
+    .sheet{ width:100%; max-width:560px; background:var(--panel); border:1px solid var(--soft); border-radius:16px; overflow:hidden; }
+    .sheet header{ padding:12px; border-bottom:1px solid var(--soft); }
+    .sheet .body{ padding:12px; display:grid; gap:10px; max-height:70vh; overflow:auto; }
+    .sheet .footer{ display:flex; gap:8px; padding:12px; border-top:1px solid var(--soft); }
+    label{ display:grid; gap:6px; font-size:12px; color:var(--muted); }
+    input[type="text"], input[type="date"], .input{ width:100%; border:1px solid var(--soft); background:#0e0e14; color:var(--text); padding:10px; border-radius:10px; }
+    .chips{ display:flex; flex-wrap:wrap; gap:6px; }
+    .chip{ background:var(--soft); padding:6px 8px; border-radius:999px; font-size:12px; display:flex; gap:6px; align-items:center; }
+    .chip .x{ cursor:pointer; opacity:.7; }
+
+    /* Debug Dock (default collapsed) */
+    .debug-dock{ position:fixed; left:0; right:0; bottom:0; background:#0e0e14; border-top:1px solid var(--soft); z-index:99; }
+    .debug-dock.collapsed .debug-log{ display:none; }
+    .debug-toolbar{ display:flex; align-items:center; gap:8px; padding:6px 10px; font-size:12px; color:var(--muted); }
+    .debug-toolbar .spacer{ flex:1; }
+    .debug-log{ height:160px; overflow:auto; padding:6px 10px; font:12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; white-space:pre-wrap; background:#0b0b10; color:#d6e3ff; }
+
+    /* Loading Overlay */
+    .loading-overlay{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.6); z-index:120; backdrop-filter: blur(2px); }
+    .loading-overlay.show{ display:flex; }
+    .loading-box{ background:var(--panel); border:1px solid var(--soft); border-radius:16px; padding:16px 18px; display:flex; align-items:center; gap:12px; box-shadow:0 6px 20px rgba(0,0,0,.35); }
+    .spinner{ width:28px; height:28px; border:3px solid rgba(255,255,255,.2); border-top-color:#7dd3fc; border-radius:50%; animation:spin 1s linear infinite; }
+    @keyframes spin{ to{ transform:rotate(360deg); } }
+
+    @media (max-width:480px){ .title{ font-size:16px; } }
   </style>
 </head>
 <body>
+<div class="wrap">
   <header>
-    <h1>출석부(회원목록) <span id="count" class="chip">0명</span></h1>
-    <div class="bar">
-      <button id="btnSync">회원정보 업데이트 버튼</button>
-      <span class="meta">소모임 → 스프레드시트 동기화 후 최신 목록을 보여줍니다.</span>
-    </div>
+    <button id="btnAddMember" class="btn">회원 추가</button>
+    <div class="title">의적단 출석부</div>
+    <button id="btnAddMeeting" class="btn">모임 추가</button>
   </header>
 
-  <main>
-    <div id="grid" class="grid"></div>
-  </main>
+  <div class="tabs">
+    <div class="tab active" data-tab="meetings">모임별 출석</div>
+    <div class="tab" data-tab="members">회원별 출석</div>
+    <div class="tab" data-tab="stats">통계</div>
+  </div>
 
-  <!-- 로딩/토스트 -->
-  <div id="loader" class="loader"><div class="spinner"></div></div>
-  <div id="toast" class="toast"></div>
+  <main id="view" class="view"></main>
+</div>
 
-  <script>
-    // ✅ Apps Script 웹앱 URL (배포 후 나온 URL로 교체)
-    const API_BASE = 'https://script.google.com/macros/s/AKfycbwBJSrtyUo2z5qwmKAQDyJcFvHqYhVKJVITztWqfxKoH-ujfJHzG7gkMXQ5N00HHbA8iQ/exec';
+<!-- Member Modal -->
+<div id="memberModal" class="modal">
+  <div class="sheet">
+    <header class="row"><strong>회원 정보</strong><button class="btn ghost small" data-close>닫기</button></header>
+    <div class="body" id="memberBody"></div>
+    <div class="footer">
+      <button id="btnMemberDelete" class="btn" style="background:var(--danger)">회원 삭제</button>
+      <button id="btnMemberSave" class="btn accent" style="margin-left:auto">저장하기</button>
+    </div>
+  </div>
+</div>
 
-    // ------- 유틸(토스트/로딩/날짜 포맷) -------
-    const $ = (sel) => document.querySelector(sel);
-    function showToast(msg) {
-      const t = $('#toast');
-      t.textContent = msg;
-      t.style.display = 'block';
-      setTimeout(() => { t.style.display = 'none'; }, 1800);
-    }
-    function showLoader(v) {
-      $('#loader').style.display = v ? 'flex' : 'none';
-    }
-    function fmtDate(iso) {
-      // 서버가 "YYYY-MM-DD"로 내려주므로, 한국 로케일로 보기 좋게 가공
-      if (!iso) return '-';
-      const d = new Date(iso);
-      if (isNaN(d)) return iso; // 혹시 포맷 다르면 원문 출력
-      return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' });
-    }
+<!-- Meeting Modal -->
+<div id="meetingModal" class="modal">
+  <div class="sheet">
+    <header class="row"><strong>모임 정보</strong><button class="btn ghost small" data-close>닫기</button></header>
+    <div class="body" id="meetingBody"></div>
+    <div class="footer">
+      <button id="btnMeetingDelete" class="btn" style="background:var(--danger)">모임 삭제</button>
+      <button id="btnMeetingSave" class="btn accent" style="margin-left:auto">저장하기</button>
+    </div>
+  </div>
+</div>
 
-    // ------- 렌더링 -------
-    /** 멤버 카드 렌더 */
-    function renderMembers(members) {
-      const grid = $('#grid');
-      grid.innerHTML = ''; // 초기화
-      $('#count').textContent = `${members.length}명`;
+<!-- Debug Dock (collapsed by default) -->
+<div id="debugDock" class="debug-dock collapsed">
+  <div class="debug-toolbar">
+    <strong>Debug Log</strong>
+    <button id="dbgToggle" class="btn small ghost">접기/펼치기</button>
+    <button id="dbgClear" class="btn small">지우기</button>
+    <span class="spacer"></span>
+    <span id="dbgStatus">idle</span>
+  </div>
+  <div id="debugLog" class="debug-log" aria-live="polite"></div>
+</div>
 
-      // 이미지 로드 실패 시 대체 이미지를 쓰기 위한 핸들러
-      const fallback = 'https://via.placeholder.com/128?text=User';
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay" aria-live="polite" aria-busy="true">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <div id="loadingMessage">데이터 통신 중…</div>
+  </div>
+</div>
 
-      members.forEach(m => {
-        const card = document.createElement('div');
-        card.className = 'card';
-
-        const avatar = document.createElement('div');
-        avatar.className = 'avatar';
-        const img = document.createElement('img');
-        img.loading = 'lazy';
-        img.src = m.image_url || fallback;
-        img.onerror = () => { img.src = fallback; };
-        avatar.appendChild(img);
-
-        const info = document.createElement('div');
-        info.className = 'info';
-        const nick = document.createElement('p');
-        nick.className = 'nick';
-        nick.textContent = m.nickname || '(닉네임 없음)';
-        const date = document.createElement('p');
-        date.className = 'date';
-        date.textContent = `가입일: ${fmtDate(m.joined_at)}`;
-
-        info.appendChild(nick);
-        info.appendChild(date);
-
-        card.appendChild(avatar);
-        card.appendChild(info);
-        grid.appendChild(card);
-      });
-    }
-
-    // ------- API 호출 -------
-    /** 현재 저장된 멤버 목록 가져오기 (GET) */
-    async function fetchMembers() {
-      const res = await fetch(API_BASE, { method: 'GET' });
-      if (!res.ok) throw new Error(`GET failed: ${res.status}`);
-      const json = await res.json();
-      if (!json.ok) throw new Error(json.error || 'Unknown error');
-      return json.members || [];
-    }
-
-    /** 소모임 → 스프레드시트 동기화 (POST: action=sync) */
-    async function syncMembers() {
-      const res = await fetch(API_BASE, {
-        const res = await fetch(API_BASE + '?action=sync'); // ← GET
-        const json = await res.json();
-        if (!json.ok) throw new Error(json.error || 'Sync error');
-        return json.members || [];
-      });
-      if (!res.ok) throw new Error(`POST failed: ${res.status}`);
-      const json = await res.json();
-      if (!json.ok) throw new Error(json.error || 'Sync error');
-      return json.members || [];
-    }
-
-    // ------- 초기화 -------
-    async function init() {
-      showLoader(true);
-      try {
-        const list = await fetchMembers();
-        renderMembers(list);
-      } catch (err) {
-        console.error(err);
-        showToast('초기 로드 실패');
-      } finally {
-        showLoader(false);
-      }
-    }
-
-    $('#btnSync').addEventListener('click', async () => {
-      showLoader(true);
-      try {
-        const list = await syncMembers();
-        renderMembers(list);
-        showToast('업데이트 완료');
-      } catch (err) {
-        console.error(err);
-        showToast('업데이트 실패' + (err.message || err));
-      } finally {
-        showLoader(false);
-      }
-    });
-
-    // 페이지 진입 시 1회 로드
-    init();
-  </script>
+<script src="app.js"></script>
 </body>
 </html>
