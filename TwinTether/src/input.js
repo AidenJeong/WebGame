@@ -46,9 +46,17 @@ class PointerManager {
     const dB = p.clone().sub(g.playerB.pos).len();
     var takenA = false, takenB = false;
     this.active.forEach(function(v){ if(v.target==='A') takenA=true; if(v.target==='B') takenB=true; });
-    if(!takenA && !takenB) return (dA <= dB) ? 'A' : 'B';
-    if(!takenA) return 'A';
-    if(!takenB) return 'B';
+    const takeLength = this.game.playerRadius * 3;
+    if(!takenA && !takenB) {
+      if (dA <= dB && dA <= takeLength) {
+        return 'A';
+      } 
+      if (dB <= dA && dB <= takeLength) {
+        return 'B';
+      }
+    } 
+    if(!takenA && dA <= takeLength) return 'A';
+    if(!takenB && dB <= takeLength) return 'B';
     return null;
   }
 

@@ -10,10 +10,10 @@ function renderHearts(hearts,maxHearts){
   }
 }
 function setPowerLabel(n){
-  document.getElementById('powerLevel').textContent = 'Lines: ' + n;
+  //document.getElementById('powerLevel').textContent = 'Lines: ' + n;
 }
 function setWaveInfo(txt){
-  document.getElementById('waveInfo').textContent = txt || '';
+  //document.getElementById('waveInfo').textContent = txt || '';
 }
 function showOverlay(show){
   document.getElementById('overlay').classList.toggle('hidden', !show);

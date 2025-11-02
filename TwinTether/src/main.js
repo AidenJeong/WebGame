@@ -58,6 +58,20 @@
   } catch(_){}
 
   // -------- 페이지 로드 후 Game 결선 ----------
+
+  async function startWithData(){
+    try{
+      const pack = await Data.loadStagePack('data/gamedata.json');
+      //const pack = await Data.loadStagePack('#stage-pack');
+      // 게임 인스턴스 생성되어 있다고 가정(window.game)
+      window.game.wave.setStageData(pack, 1); // 1번 스테이지 선택
+      window.game.start();
+    }catch(e){
+      // 오버레이 + 얼럿으로 바로 확인 가능
+      if (window.__fatal) __fatal(e, 'startWithData');
+      else alert('데이터 로드 오류: ' + (e && e.message ? e.message : e));
+    }
+  }
   function init(){
     var canvas = document.getElementById('game');
     if (!canvas) return;
@@ -72,7 +86,7 @@
         var overlay = document.getElementById('overlay');
         if (overlay) overlay.classList.add('hidden');
         canvas.style.pointerEvents = 'auto';
-        window.game.start();
+        startWithData();
       }, {passive:false});
       btn._bound = true;
     }

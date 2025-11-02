@@ -1,0 +1,752 @@
+{
+    "score" :
+    {
+        "normal" : 10,
+        "attacker" : 20,
+        "stageClear" : 30,
+        "item" : 10,
+        "itemBonus" : 20
+    },
+    "monsters": [
+        {
+            "id": "e_none_0001",
+            "hp": 1,
+            "image": "assets/chick.png",
+            "size": 0.66,
+            "attackKind" : "none",
+            "attackTiming" : 0,
+            "period" : 0,
+            "dropItem" : "none",
+            "dropRatio" : 0
+        },
+        {
+            "id": "e_none_0002",
+            "hp": 3,
+            "image": "assets/chick.png",
+            "size": 0.66,
+            "attackKind" : "none",
+            "attackTiming" : 0,
+            "period" : 0,
+            "dropItem" : "none",
+            "dropRatio" : 0
+        },
+        {
+            "id": "e_none_0003",
+            "hp": 6,
+            "image": "assets/chick.png",
+            "size": 0.66,
+            "attackKind" : "none",
+            "attackTiming" : 0,
+            "period" : 0,
+            "dropItem" : "none",
+            "dropRatio" : 0
+        },
+        {
+            "id": "e_dir_1001",
+            "hp": 5,
+            "image": "assets/chicken.png",
+            "size": 1.2,
+            "attackKind" : "dir_02",
+            "attackTiming" : 1,
+            "period" : 5,
+            "dropItem" : "heart",
+            "dropRatio" : 1.0
+        },
+        {
+            "id": "e_dir_0001",
+            "hp": 3,
+            "image": "assets/chicken.png",
+            "size": 0.66,
+            "attackKind" : "dir_01",
+            "attackTiming" : 1,
+            "period" : 5,
+            "dropItem" : "power",
+            "dropRatio" : 0.1
+        },
+        {
+            "id": "e_dir_0002",
+            "hp": 3,
+            "image": "assets/chicken.png",
+            "size": 0.66,
+            "attackKind" : "dir_02",
+            "attackTiming" : 1,
+            "period" : 5,
+            "dropItem" : "power",
+            "dropRatio" : 0.1
+        },
+        {
+            "id": "e_mine_0001",
+            "hp": 3,
+            "image": "assets/crocodile.png",
+            "size": 0.66,
+            "attackKind" : "mine_01",
+            "attackTiming" : 1,
+            "period" : 3,
+            "dropItem" : "none",
+            "dropRatio" : 0
+        },
+        {
+            "id": "e_aoe_1001",
+            "hp": 8,
+            "image": "assets/owl.png",
+            "size": 1.3,
+            "attackKind" : "aoe_01",
+            "attackTiming" : 1,
+            "period" : 5,
+            "dropItem" : "heart",
+            "dropRatio" : 1.0
+        },
+        {
+            "id": "e_aoe_0001",
+            "hp": 3,
+            "image": "assets/owl.png",
+            "size": 0.66,
+            "attackKind" : "aoe_02",
+            "attackTiming" : 1,
+            "period" : 5,
+            "dropItem" : "heart",
+            "dropRatio" : 0.1
+        }
+    ],
+    "attackDetails": [
+        {
+            "id": "none",
+            "dir_angles": [0],
+            "dir_speed": 0,
+            "mine_lifesec": 0,
+            "mine_radius": 0,
+            "aoe_radius": 0,
+            "aoe_duration": 0
+        },
+        {
+            "id": "dir_01",
+            "dir_angles": [90, 270],
+            "dir_speed": 1,
+            "mine_lifesec": 0,
+            "mine_radius": 0,
+            "aoe_radius": 0,
+            "aoe_duration": 0
+        },
+        {
+            "id": "dir_02",
+            "dir_angles": [0, 45, 90, 135, 180, 225, 270, 315],
+            "dir_speed": 1,
+            "mine_lifesec": 0,
+            "mine_radius": 0,
+            "aoe_radius": 0,
+            "aoe_duration": 0
+        },
+        {
+            "id": "mine_01",
+            "dir_angles": [0],
+            "dir_speed": 0,
+            "mine_lifesec": 10,
+            "mine_radius": 8,
+            "aoe_radius": 0,
+            "aoe_duration": 0
+        },
+        {
+            "id": "aoe_01",
+            "dir_angles": [0],
+            "dir_speed": 0,
+            "mine_lifesec": 0,
+            "mine_radius": 0,
+            "aoe_radius": 120,
+            "aoe_duration": 0.2
+        },
+        {
+            "id": "aoe_02",
+            "dir_angles": [0],
+            "dir_speed": 0,
+            "mine_lifesec": 0,
+            "mine_radius": 0,
+            "aoe_radius": 80,
+            "aoe_duration": 0.2
+        }
+    ],
+    "groups": [
+        {
+            "id": "g_0101",
+            "monsterIds": [
+                "e_dir_1001"
+            ]
+        },
+        {
+            "id": "g_0102",
+            "monsterIds": [
+                "e_aoe_1001"
+            ]
+        },
+        {
+            "id": "g_0103",
+            "monsterIds": [
+                "e_aoe_0001"
+            ]
+        },
+        {
+            "id": "g_0501",
+            "monsterIds": [
+                "e_none_0001",
+                "e_none_0001",
+                "e_none_0001",
+                "e_none_0001",
+                "e_none_0001"
+            ]
+        },
+        {
+            "id": "g_0502",
+            "monsterIds": [
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_mine_0001"
+            ]
+        },
+        {
+            "id": "g_0503",
+            "monsterIds": [
+                "e_mine_0001",
+                "e_mine_0001",
+                "e_mine_0001",
+                "e_mine_0001",
+                "e_mine_0001"
+            ]
+        },
+        {
+            "id": "g_1001",
+            "monsterIds": [
+                "e_none_0001",
+                "e_none_0001",
+                "e_none_0001",
+                "e_none_0001",
+                "e_none_0001",
+                "e_none_0001",
+                "e_none_0001",
+                "e_none_0001",
+                "e_none_0001",
+                "e_none_0001"
+            ]
+        },
+        {
+            "id": "g_1002",
+            "monsterIds": [
+                "e_dir_0001",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_dir_0001"
+            ]
+        },
+        {
+            "id": "g_1003",
+            "monsterIds": [
+                "e_dir_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_dir_0001"
+            ]
+        },
+        {
+            "id": "g_1004",
+            "monsterIds": [
+                "e_aoe_0001",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_dir_0001"
+            ]
+        },
+        {
+            "id": "g_2001",
+            "monsterIds": [
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002",
+                "e_none_0002"
+            ]
+        }
+    ],
+    "waves": [
+        {
+            "id" : "w_0001",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_0501",
+                    "moveSpeed" : 0.3
+                }
+            ]
+        },
+        {
+            "id" : "w_0002",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_1001",
+                    "moveSpeed" : 0.5
+                }
+            ]
+        },
+        {
+            "id" : "w_0003",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_0501",
+                    "moveSpeed" : 0.3
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_1001",
+                    "moveSpeed" : 0.5
+                }
+            ]
+        },
+        {
+            "id" : "w_0004",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_1001",
+                    "moveSpeed" : 0.5
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_1001",
+                    "moveSpeed" : 0.6
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_1001",
+                    "moveSpeed" : 0.65
+                }
+            ]
+        },
+        {
+            "id" : "w_0005",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_0101",
+                    "moveSpeed" : 0.5
+                }
+            ]
+        },
+        {
+            "id" : "w_0006",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_1001",
+                    "moveSpeed" : 0.6
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_2001",
+                    "moveSpeed" : 0.6
+                }
+            ]
+        },
+        {
+            "id" : "w_0007",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_2001",
+                    "moveSpeed" : 0.6
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_1002",
+                    "moveSpeed" : 0.6
+                }
+            ]
+        },
+        {
+            "id" : "w_0008",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_1002",
+                    "moveSpeed" : 0.6
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_1002",
+                    "moveSpeed" : 0.6
+                }
+            ]
+        },
+        {
+            "id" : "w_0009",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_2001",
+                    "moveSpeed" : 0.4
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_2001",
+                    "moveSpeed" : 0.65
+                }
+            ]
+        },
+        {
+            "id" : "w_0010",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_0502",
+                    "moveSpeed" : 0.6
+                }
+            ]
+        },
+        {
+            "id" : "w_0011",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_0502",
+                    "moveSpeed" : 0.6
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_2001",
+                    "moveSpeed" : 0.7
+                }
+            ]
+        },
+        {
+            "id" : "w_0012",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_0503",
+                    "moveSpeed" : 0.6
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_2001",
+                    "moveSpeed" : 0.7
+                }
+            ]
+        },
+        {
+            "id" : "w_0013",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_1003",
+                    "moveSpeed" : 0.7
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_2001",
+                    "moveSpeed" : 0.7
+                }
+            ]
+        },
+        {
+            "id" : "w_0014",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_2001",
+                    "moveSpeed" : 0.7
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_2001",
+                    "moveSpeed" : 0.7
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_2001",
+                    "moveSpeed" : 0.7
+                }
+            ]
+        },
+        {
+            "id" : "w_0015",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_0503",
+                    "moveSpeed" : 0.7
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_2001",
+                    "moveSpeed" : 0.7
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_0102",
+                    "moveSpeed" : 0.5
+                }
+            ]
+        },
+        {
+            "id" : "w_0016",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_1003",
+                    "moveSpeed" : 0.8
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_2001",
+                    "moveSpeed" : 0.8
+                }
+            ]
+        },
+        {
+            "id" : "w_0017",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_1002",
+                    "moveSpeed" : 1
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_1003",
+                    "moveSpeed" : 1
+                }
+            ]
+        },
+        {
+            "id" : "w_0018",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_0503",
+                    "moveSpeed" : 1
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_2001",
+                    "moveSpeed" : 1
+                }
+            ]
+        },
+        {
+            "id" : "w_0019",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_1004",
+                    "moveSpeed" : 1
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_1004",
+                    "moveSpeed" : 1
+                }
+            ]
+        },
+        {
+            "id" : "w_0020",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_1004",
+                    "moveSpeed" : 1
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_1004",
+                    "moveSpeed" : 1
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_1004",
+                    "moveSpeed" : 1
+                }
+            ]
+        },
+        {
+            "id" : "w_0021",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_0503",
+                    "moveSpeed" : 1.2
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_0503",
+                    "moveSpeed" : 1.2
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_0503",
+                    "moveSpeed" : 1.2
+                }
+            ]
+        },
+        {
+            "id" : "w_0022",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_0503",
+                    "moveSpeed" : 1.5
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_2001",
+                    "moveSpeed" : 1.5
+                }
+            ]
+        },
+        {
+            "id" : "w_0023",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_1004",
+                    "moveSpeed" : 1.5
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_2001",
+                    "moveSpeed" : 1.5
+                }
+            ]
+        },
+        {
+            "id" : "w_0024",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_0103",
+                    "moveSpeed" : 1.5
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_0103",
+                    "moveSpeed" : 1.5
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_0103",
+                    "moveSpeed" : 1.5
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_0103",
+                    "moveSpeed" : 1.5
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_0103",
+                    "moveSpeed" : 1.5
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_0103",
+                    "moveSpeed" : 1.5
+                }
+            ]
+        },
+        {
+            "id" : "w_0025",
+            "spawns": [
+                {
+                    "delay" : 0,
+                    "groupId" : "g_0101",
+                    "moveSpeed" : 1.5
+                },
+                {
+                    "delay" : 0,
+                    "groupId" : "g_0102",
+                    "moveSpeed" : 1.5
+                }
+            ]
+        }
+    ],
+    "stages": [
+        {
+            "stageNo": 10,
+            "bg": "assets/bg_01.jpg",
+            "waveCount": 5,
+            "waveIds": [
+                "w_0001",
+                "w_0002",
+                "w_0003",
+                "w_0004",
+                "w_0005"
+            ]
+        },
+        {
+            "stageNo": 2,
+            "bg": "assets/bg_01.jpg",
+            "waveCount": 10,
+            "waveIds": [
+                "w_0006",
+                "w_0007",
+                "w_0008",
+                "w_0009",
+                "w_0010",
+                "w_0011",
+                "w_0012",
+                "w_0013",
+                "w_0014",
+                "w_0015"
+            ]
+        },
+        {
+            "stageNo": 1,
+            "bg": "assets/bg_01.jpg",
+            "waveCount": 10,
+            "waveIds": [
+                "w_0016",
+                "w_0017",
+                "w_0018",
+                "w_0019",
+                "w_0020",
+                "w_0021",
+                "w_0022",
+                "w_0023",
+                "w_0024",
+                "w_0025"
+            ]
+        }
+    ]
+}

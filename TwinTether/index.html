@@ -2,10 +2,10 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <title>TwinTether</title>
+  <title>StringHunter</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="src/styles.css" />
 </head>
 <body>
   <div id="app">
@@ -14,16 +14,18 @@
     <!-- HUD -->
     <div id="hud">
       <div id="hearts"></div>
+      <!-- 
       <div id="status">
         <span id="powerLevel">Lines: 1</span>
         <span id="waveInfo"></span>
-      </div>
+      </div> 
+      -->
     </div>
 
     <!-- 시작 오버레이: onclick으로 '직접' 시작 보장 -->
     <div id="overlay" class="center">
       <div class="panel">
-        <h1>TwinTether</h1>
+        <h1>스트링헌터</h1>
         <p>두 원을 움직여 라인으로 적을 베어내세요!</p>
         <button id="startBtn" onclick="_startGame()">시작하기</button>
       </div>
@@ -36,10 +38,14 @@
   <!-- 스크립트: 의존 순서대로 (모듈 사용 안 함) -->
   <script src="src/ui.js"></script>
   <script src="src/utils.js"></script>       <!-- Vec2, rand, clamp 등 (프로젝트에 있는 이름에 맞춰 두세요) -->
+  <script src="src/debug.js"></script>
+  <script src="src/assets.js"></script>
+  <script src="src/data_loader.js"></script>
   <script src="src/entities.js"></script>
   <script src="src/waves.js"></script>
   <script src="src/input.js"></script>
   <script src="src/main.js"></script>
+  <script src="src/particles.js"></script>
   <script src="src/game.js"></script>
 
   <!-- 시작 버튼이 '항상' 동작하도록 보장하는 최후방 안전장치 -->

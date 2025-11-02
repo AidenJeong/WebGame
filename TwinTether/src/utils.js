@@ -45,13 +45,19 @@ function randSign(){ return Math.random() < 0.5 ? -1 : 1; }
 // Colors
 const COL = {
   bg: "#0b0c10",
-  line: "#48e9ff",
+  line: "#69ff48ff",
+  lineOne: "#2ee66e",
+  lineTwo: "#3aa0ff",
+  lineThree: "#ff3a3a",
+  lineOuter: "#48e9ff",
   lineDisabled: "#7a7a85",
   player: "#9ee37d",
   enemyNormal: "#ffcc33",
   enemyShooter: "#ff7b54",
   boss: "#b384ff",
   missile: "#ffffff",
+  mine: "#ff3333",
+  aoe: "#ff3333",
   itemHearts: "#ff3b62",
   itemPower: "#46d3ff"
 };
