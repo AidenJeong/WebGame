@@ -703,7 +703,7 @@
     ],
     "stages": [
         {
-            "stageNo": 10,
+            "stageNo": 1,
             "bg": "assets/bg_01.jpg",
             "waveCount": 5,
             "waveIds": [
@@ -732,7 +732,7 @@
             ]
         },
         {
-            "stageNo": 1,
+            "stageNo": 3,
             "bg": "assets/bg_01.jpg",
             "waveCount": 10,
             "waveIds": [
