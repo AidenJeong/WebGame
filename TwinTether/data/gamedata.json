@@ -733,11 +733,7 @@
         },
         {
             "stageNo": 3,
-<<<<<<< HEAD
-            "bg": "assets/bg_01.jpg",
-=======
             "bg": "assets/bg_03.jpg",
->>>>>>> ddd4a35 (update all files)
             "waveCount": 10,
             "waveIds": [
                 "w_0016",
