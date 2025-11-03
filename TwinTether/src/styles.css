@@ -4,7 +4,7 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0e0f13; color: #e
 
 /* 모바일: 꽉찬 세로, 데스크탑: 세로 레터박스 */
 #game { 
-  background: #0b0c10; outline: none;
+  background: transparent; outline: none;
   touch-action: none;  /* 기본 제스처 방지 */
   -webkit-user-select: none; user-select: none;
   -webkit-touch-callout: none;
@@ -58,3 +58,26 @@ html, body {
   user-select: none;
 }
 #app { touch-action: none; }
+
+/* Fullscreen background-only menu (no buttons, no scripts) */
+#menu-bg{
+  position: fixed;
+  inset: 0;
+  background: #101318 url('../assets/front_bg.jpg') center/cover no-repeat;
+  z-index: 0;          /* 캔버스 위에 표시 */
+  pointer-events: none;   /* 게임 입력 막지 않음 (입력 막고 싶으면 지워도 됨) */
+}
+
+.game-title{
+  position: fixed; top: clamp(40px, 12vh, 120px); left: 50%; transform: translateX(-50%);
+  margin: 0;
+  font: 900 clamp(40px, 9vw, 88px)/1.06 system-ui, -apple-system, Segoe UI, Roboto, 'Noto Sans KR', sans-serif;
+  color: #fff;
+  -webkit-text-stroke: 2px rgba(0,0,0,0.45);
+  text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+  letter-spacing: 0.5px;
+  z-index: 10;
+  pointer-events: none;
+}
+.game-title{ display: none; }
+.is-menu .game-title{ display: block; }

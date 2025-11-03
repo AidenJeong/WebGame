@@ -35,6 +35,7 @@ function showPopup(title, subtitle, onRetry){
     <h2 style="margin:6px 0 10px;">'+title+'</h2>\
     <p style="opacity:.9; margin:0 0 14px;">'+(subtitle||'')+'</p>\
     <button id="retryBtn" style="background:#22c55e;color:#fff;border:none;padding:8px 12px;border-radius:8px;font-weight:700;cursor:pointer;">다시하기</button>\
+    <button id="adsBtn" style="background:#22c55e;color:#fff;border:none;padding:8px 12px;border-radius:8px;font-weight:700;cursor:pointer;">광고보고 이어하기</button>\
   </div>';
 
   document.getElementById('retryBtn').onclick = function(){

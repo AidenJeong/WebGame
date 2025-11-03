@@ -7,7 +7,10 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <link rel="stylesheet" href="src/styles.css" />
 </head>
-<body>
+<body class="is-menu">
+<h1 class="game-title">스트링헌터</h1>
+<div id="menu-bg"></div>
+
   <div id="app">
     <canvas id="game" tabindex="0"></canvas>
 
@@ -25,7 +28,7 @@
     <!-- 시작 오버레이: onclick으로 '직접' 시작 보장 -->
     <div id="overlay" class="center">
       <div class="panel">
-        <h1>스트링헌터</h1>
+        <!-- <h1>스트링헌터</h1> -->
         <p>두 원을 움직여 라인으로 적을 베어내세요!</p>
         <button id="startBtn" onclick="_startGame()">시작하기</button>
       </div>
@@ -53,6 +56,12 @@
   // 전역 안전 시작 함수(버튼 onclick으로 직접 호출)
   function _startGame(){
     try{
+      document.body.classList.remove('is-menu');
+      var menuBg = document.getElementById('menu-bg');
+      if (menuBg) menuBg.classList.add('hidden');
+      // 메뉴로 다시 돌아올때 호출해야함
+      // document.body.classList.add('is-menu');
+
       // 오버레이 먼저 숨기고 캔버스 입력 켜기
       var overlay = document.getElementById('overlay');
       var canvas  = document.getElementById('game');
@@ -84,5 +93,6 @@
     }
   }
 </script>
+
 </body>
 </html>

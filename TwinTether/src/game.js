@@ -53,6 +53,45 @@ class Game {
     this._scorePulseT = 0;       // 0..1 (카운트다운)
     this._scorePulseAmp = 0;     // 0..N (세기)
 
+    // 화면 흔들림 연출용
+    this._shake = {
+      t: 0,        // 남은 시간(초)
+      dur: 0,      // 총 길이(초)
+      amp: 0,      // 진폭(px)
+      freq: 55,    // 주파수(Hz)
+      phx: Math.random()*TAU, // 위상(랜덤 시작)
+      phy: Math.random()*TAU
+    };
+
+    // 트리거 함수
+    this.startScreenShake = (duration = 0.10, amplitude = 4, freq = 55) => {
+      const s = this._shake;
+      s.dur = Math.max(0.016, duration);
+      s.t   = s.dur;                     // 남은 시간을 리셋
+      s.amp = Math.max(s.amp, amplitude); // 진행 중이면 더 큰 진폭만 반영
+      s.freq = freq;
+      s.phx = Math.random()*TAU;
+      s.phy = Math.random()*TAU;
+    };
+
+    // 화면 흔들림 적용 함수
+    this.applyScreenShake = (ctx) => {
+      const s = this._shake;
+      if (s.t <= 0) return;
+
+      // 경과 비율 u: 0→1 / 감쇠(att)는 제곱으로 부드럽게
+      const elapsed = s.dur - s.t;
+      const u = elapsed / s.dur;
+      const att = (1 - u) * (1 - u);
+
+      // 2개의 사인으로 XY를 약간 다르게(자연스러운 흔들림)
+      const w = TAU * s.freq; // 2πf
+      const ox = Math.sin(w * elapsed + s.phx) * s.amp * att;
+      const oy = Math.sin(w * elapsed * 1.35 + s.phy) * s.amp * att;
+
+      ctx.translate(ox, oy);
+    };
+
     renderHearts(this.hearts, this.heartsMax);
     setPowerLabel(this.powerLevel);
 
@@ -136,6 +175,7 @@ class Game {
     this.playerB.shakeUntil = t + 0.25;
     this.playerA.shakeMag = mag;
     this.playerB.shakeMag = mag;
+    this.startScreenShake(0.12, 6, 55);
     if(this.hearts<=0) this.gameOver();
   }
   setPlayerPos(target, p){
@@ -235,6 +275,12 @@ class Game {
     }
 
     this.particles.update(dt);
+
+    // 화면 흔들기
+    if (this._shake.t > 0) {
+      this._shake.t = Math.max(0, this._shake.t - dt);
+      // 시간이 줄면서 자동으로 사라짐
+    }
   }
 
   // ─────────────────────────────────────────────
@@ -423,6 +469,10 @@ class Game {
     const ctx = this.ctx;
     ctx.clearRect(0,0,this.width,this.height);
 
+    // 화면 흔들림
+    ctx.save();
+    this.applyScreenShake(this.ctx); 
+
     // ✅ 배경 이미지 그리기 (CSS 'cover'처럼 꽉 차게 + 선택적 스크롤)
     // const bg = (window.ASSETS && ASSETS.bg) ? ASSETS.bg[this.bgKey] : null;
     const bg = (ASSETS && ASSETS.images) ? ASSETS.images[this.bgKey] : null; // ← url 키로 조회
@@ -514,6 +564,8 @@ class Game {
     for(const a of this.aoes) a.draw(ctx);
 
     this.particles.draw(ctx);
+
+    ctx.restore();
 
     // Wave overlays
     this.wave.draw(ctx);
